@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Public Files from Google Drive</title>
+</head>
+<body>
+    <h1>Files in Public Google Drive Folder:</h1>
+    <ul id="fileList"></ul>
+
+    <script>
+        // 请求公开文件夹中的文件列表
+        function listPublicFiles(folderId) {
+            // 使用 fetch API 发送 GET 请求
+            fetch(`https://www.googleapis.com/drive/v3/files?q='1PZsN0m-kGSUpp61voTgEq7D5P4uWxLDc'+in+parents&key=AIzaSyD4WBSllYHKDDiH2MteM82RcXRR1dEpN4A`)
+            .then(response => response.json())
+            .then(data => {
+                const files = data.files;
+                const fileList = document.getElementById('fileList');
+                if (files && files.length > 0) {
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.textContent = file.name;
+                        fileList.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = 'No files found.';
+                    fileList.appendChild(li);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching files:', error);
+            });
+        }
+
+        // 调用 listPublicFiles 函数并传入文件夹的ID
+        listPublicFiles('1PZsN0m-kGSUpp61voTgEq7D5P4uWxLDc'); // 将 'YOUR_FOLDER_ID' 替换为目标文件夹的ID
+    </script>
+</body>
+</html>
