@@ -9,42 +9,100 @@
     gtag('js', new Date());
 
     gtag('config', 'G-4Y1K5TMT9J');
+
+    let driveApiKey = 'AIzaSyCm4tSFsSxIO83BwNPBh9BGIAtuMHWIwRU'
+    let drivefolderId = '1bdi85p2IGO2d8dbc2UhtdE_5rRYOtdMC'
   </script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google Drive 文件列表</title>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script>
-    function listFiles() {
-      gapi.load('client', function() {
-        gapi.client.init({
-          apiKey: 'AIzaSyD4WBSllYHKDDiH2MteM82RcXRR1dEpN4A',
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-        }).then(function() {
-          return gapi.client.drive.files.list({
-            q: "'1PZsN0m-kGSUpp61voTgEq7D5P4uWxLDc' in parents and trashed=false", // 替換 'FOLDER_ID' 為你的目標文件夾的 ID
-            fields: 'files(id, name, webViewLink)'
+  <script src="cors.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive 資料夾列表</title>
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+  function listFiles(folderId) {
+    gapi.client.drive.files.list({
+      q: "'" + folderId + "' in parents",
+      fields: 'files(id, name, mimeType, webViewLink)',
+      orderBy: 'name desc'
+    }).then(function(response) {
+      var files = response.result.files;
+      var fileList = document.getElementById('fileList');
+      fileList.innerHTML = ''; // 清空之前的列表
+      var firstImageFound = false;
+      files.forEach(function(file) {
+        // if (file.mimeType.startsWith('image/')) {
+        if (!firstImageFound && file.mimeType.startsWith('image/')) {
+          // 如果文件是图片
+          var image = document.createElement('img');
+          // image.src = file.webViewLink;
+          // image.src = 'https://drive.usercontent.google.com/download?id=' + file.id;
+          image.src = 'https://drive.google.com/uc?id=' + file.id;
+          image.alt = file.name;
+          image.addEventListener('click', function() {
+            window.open(file.webViewLink, '_blank');
           });
-        }).then(function(response) {
-          var files = response.result.files;
-          var fileList = document.getElementById('fileList');
-          files.forEach(function(file) {
-            var listItem = document.createElement('li');
-            listItem.innerHTML = '<a href="' + file.webViewLink + '">' + file.name + '</a>';
-            fileList.appendChild(listItem);
-          });
-        }, function(error) {
-          console.error('Error loading Google Drive API:', error);
-        });
+          fileList.appendChild(image);
+          firstImageFound = true; // 標記已找到第一張圖片
+        } else {
+          // 如果文件不是图片，则显示文件名和下载链接
+          var listItem = document.createElement('li');
+          var link = document.createElement('a');
+          link.href = file.webViewLink;
+          link.textContent = file.name;
+          listItem.appendChild(link);
+          fileList.appendChild(listItem);
+        }
       });
-    }
-  </script>
+
+    }, function(error) {
+      console.error('Error loading files:', error);
+    });
+  }
+
+  function folderSelected(folderId) {
+    console.log('Selected folder ID:', folderId);
+    listFiles(folderId); // 调用 listFiles 函数来获取文件列表并显示
+  }
+</script>
 </head>
 <body>
-<h1>Google Drive 文件列表</h1>
-<ul id="fileList"></ul>
+<h1>Google Drive 資料夾列表</h1>
+<ul id="folderList">
+  <!-- 此處將顯示資料夾列表 -->
+</ul>
+<h2>文件列表</h2>
+<div id="fileList">
+  <!-- 此處將顯示所選文件夾中的文件列表 -->
+</div>
 <script>
-  listFiles();
+  gapi.load('client', function() {
+    gapi.client.init({
+      apiKey: driveApiKey, // 替換為你的 API 密鑰
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+    }).then(function() {
+      return gapi.client.drive.files.list({
+        q: "'1bdi85p2IGO2d8dbc2UhtdE_5rRYOtdMC' in parents and mimeType='application/vnd.google-apps.folder'", // 替換 'FOLDER_ID' 為目標資料夾的 ID
+        fields: 'files(id, name)'
+      });
+    }).then(function(response) {
+      var folders = response.result.files;
+      var folderList = document.getElementById('folderList');
+      folders.forEach(function(folder) {
+        var listItem = document.createElement('li');
+        var link = document.createElement('a');
+        link.href = '#'; // 避免跳转
+        link.textContent = folder.name;
+        link.onclick = function() {
+          folderSelected(folder.id);
+        };
+        listItem.appendChild(link);
+        folderList.appendChild(listItem);
+      });
+    }, function(error) {
+      console.error('Error loading Google Drive API:', error);
+    });
+  });
 </script>
 </body>
 </html>
