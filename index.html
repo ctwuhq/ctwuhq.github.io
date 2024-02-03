@@ -75,15 +75,20 @@
       var menuList = document.getElementById('folderList');
       menuList.innerHTML = ''; // 清空之前的列表
       folders.forEach(function(folder) {
-        var listItem = document.createElement('li');
+        // var listItem = document.createElement('li');
         var link = document.createElement('a');
         link.href = '#'; // 避免跳轉
-        link.textContent = folder.name;
+        // 去掉數字部分
+        let fname = folder.name.replace(/^\d+/, '');
+        link.textContent = fname;
         link.onclick = function() {
           listFiles(folder.id);
+          // 小螢幕時關閉 menu
+          document.getElementById('closeFolder').click();
         };
-        listItem.appendChild(link);
-        menuList.appendChild(listItem);
+        // listItem.appendChild(link);
+        // menuList.appendChild(listItem);
+        menuList.appendChild(link);
       });
 
       // 默認選中第一個文件夾
@@ -115,13 +120,13 @@
     <div class="h-20 py-4 container mx-auto flex items-center justify-center">
       <!-- Menu -->
       <div x-data="{ open: false }" class="z-10 flex-1">
-        <div :class="{ 'flex' : open, 'hidden' : open === false }" class="fixed md:relative top-0 left-0 w-full md:w-auto h-screen md:h-auto md:flex flex-col md:flex-row items-center justify-center md:justify-start z-40 bg-gray-200 md:bg-transparent leading-loose font-sans uppercase text-gray-800 text-base md:text-xs tracking-wider gap-8 hidden">
-          <div id="folderList">
+        <div id="folderList" :class="{ 'flex' : open, 'hidden' : open === false }" class="fixed md:relative top-0 left-0 w-full md:w-auto h-screen md:h-auto md:flex flex-col md:flex-row items-center justify-center md:justify-start z-40 bg-gray-200 md:bg-transparent leading-loose font-sans uppercase text-gray-800 text-xl md:text-sm tracking-wider gap-3 hidden">
+          <!-- <div id="folderList"> -->
             <!-- 此處將顯示資料夾列表 -->
-          </div>
+          <!-- </div> -->
         </div>
         <button @click="open = true" type="button" :class="{ 'hidden' : open, 'block' : !open }" class="block md:hidden text-4xl font-thin">＝</button>
-        <button @click="open = false" type="button" :class="{ 'block' : open, 'hidden' : !open }" class="md:hidden absolute top-0 right-0 leading-none p-8 text-xl z-50 hidden">╳</button>
+        <button id="closeFolder" @click="open = false" type="button" :class="{ 'block' : open, 'hidden' : !open }" class="md:hidden absolute top-0 right-0 leading-none p-8 text-xl z-50 hidden">╳</button>
       </div>
       <!-- / Menu -->
       <a href="/" class="flex-1 flex items-center justify-center block h-full">
@@ -132,10 +137,11 @@
       </a>
       <div class="flex-1 flex items-center justify-end text-xs uppercase tracking-wider gap-4">
         <button type="button" class="relative">
-          <svg class="w-6 h-6"
+          <!-- <svg class="w-6 h-6"
             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-          </svg>
+          </svg> -->
+          <img width="24" src="CHT.svg" />
         </button>
       </div>
     </div>
