@@ -92,7 +92,7 @@
       q: "'" + parentFolderId + "' in parents and mimeType='application/vnd.google-apps.folder'",
       fields: 'files(id, name)',
       orderBy: 'name',
-      pageSize: 5 // 設定要獲取的文件數量
+      pageSize: 6 // 設定要獲取的資料夾數量
     }).then(function(response) {
       let folders = response.result.files;
       let menuList = document.getElementById('folderList');
