@@ -29,30 +29,53 @@
       orderBy: 'name desc',
       pageSize: 30 // 設定要獲取的文件數量
     }).then(function(response) {
-      var files = response.result.files;
-      var fileList = document.getElementById('fileList');
+      let files = response.result.files;
+      let fileList = document.getElementById('fileList');
       fileList.innerHTML = ''; // 清空之前的列表
-      var firstImageFound = 0;
+      let firstImageFound = 0;
       files.forEach(function(file) {
+        // 請求獲取文件的中繼資料資訊
+        const mimeType = file.mimeType;
         // 顯示前N張圖片
-        let showN = 1;
-        if (firstImageFound < showN && file.mimeType.startsWith('image/')) {
+        let showN = 2;
+        if (firstImageFound < showN && mimeType.startsWith('image/')) {
           // 如果文件是圖片
-          var image = document.createElement('img');
+          let div = document.createElement('div');
+          let image = document.createElement('img');
           image.src = 'https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media&key=' + driveApiKey;
           image.width = 600;
           image.alt = file.name;
           image.addEventListener('click', function() {
             window.open(file.webViewLink, '_blank');
           });
-          fileList.appendChild(image);
+          div.appendChild(image);
+          fileList.appendChild(div);
           firstImageFound++; // 標記已找到一張圖片
-        } else {
-          // 顯示文件名和下載連結
-          var listItem = document.createElement('li');
-          var link = document.createElement('a');
+        } else if (mimeType.startsWith('application/vnd.google-apps')) {
+          let listItem = document.createElement('span');
+          //listItem.textContent = file.name;
+          let link = document.createElement('a');
           link.href = file.webViewLink;
           link.textContent = file.name;
+          listItem.appendChild(link);
+          let iframe = document.createElement('iframe');
+          if (mimeType === 'application/vnd.google-apps.folder') {
+            iframe.src = 'https://drive.google.com/embeddedfolderview?id=' + file.id + '#grid';
+          } else {
+            iframe.src = 'https://docs.google.com/file/d/' + file.id + '/preview?usp=drivesdk';
+          }
+          iframe.width = '100%';
+          iframe.height = 300;
+          iframe.frameborder = 0;
+          fileList.appendChild(listItem);
+          fileList.appendChild(iframe);
+        } else {
+          // 顯示文件名和下載連結
+          let listItem = document.createElement('li');
+          let link = document.createElement('a');
+          link.href = file.webViewLink;
+          link.textContent = file.name;
+          console.log(file.id + ': ' + file.name + ': ' + mimeType);
           listItem.appendChild(link);
           fileList.appendChild(listItem);
         }
@@ -71,12 +94,12 @@
       orderBy: 'name',
       pageSize: 5 // 設定要獲取的文件數量
     }).then(function(response) {
-      var folders = response.result.files;
-      var menuList = document.getElementById('folderList');
+      let folders = response.result.files;
+      let menuList = document.getElementById('folderList');
       menuList.innerHTML = ''; // 清空之前的列表
       folders.forEach(function(folder) {
-        // var listItem = document.createElement('li');
-        var link = document.createElement('a');
+        // let listItem = document.createElement('li');
+        let link = document.createElement('a');
         link.href = '#'; // 避免跳轉
         // 去掉數字部分
         let fname = folder.name.replace(/^\d+/, '');
