@@ -16,8 +16,9 @@
 	<script src="https://cdn.tailwindcss.com"></script>
 	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-<title>資料夾列表</title>
-<script src="https://apis.google.com/js/api.js"></script>
+  <title>Hello PWA with Tailwind CSS</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://apis.google.com/js/api.js"></script>
 <script>
   let driveApiKey = 'AIzaSyCm4tSFsSxIO83BwNPBh9BGIAtuMHWIwRU'
   let drivefolderId = '1bdi85p2IGO2d8dbc2UhtdE_5rRYOtdMC'
@@ -133,6 +134,17 @@
       console.error('Error loading Google Drive API:', error);
     });
   });
+
+  
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }).catch(error => {
+            console.log('ServiceWorker registration failed: ', error);
+        });
+    });
+  }
 
 </script>
 </head>
