@@ -147,7 +147,7 @@
           setInterval(() => {
             registration.update();
             console.log('Cache updated');
-          }, 3600000); // 更新快取時間為一小時（3600000 毫秒）
+          }, 60*60*1000); // 更新快取時間為一小時（60*60*1000=3600000 毫秒）
         }).catch(error => {
           console.log('ServiceWorker registration failed: ', error);
         });
@@ -155,7 +155,7 @@
     }
     function addToHomeScreen() {
       if (window.navigator.standalone === false) {
-        alert('請點擊「分享」圖式，然後選擇「新增到主畫面」');
+        alert('請點擊「分享」圖式，然後選擇「加入主畫面」');
       }
     }
 
