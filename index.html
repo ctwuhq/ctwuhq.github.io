@@ -147,7 +147,7 @@
           setInterval(() => {
             registration.update();
             console.log('Cache updated');
-          }, 60*60*1000); // 更新快取時間為一小時（60*60*1000=3600000 毫秒）
+          }, 5000); // 更新快取時間為一小時（60*60*1000=3600000 毫秒）, 測試期間設5000ms
         }).catch(error => {
           console.log('ServiceWorker registration failed: ', error);
         });
