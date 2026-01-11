@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>攤商登入 - LINE Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-400 to-green-600 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">攤商系統</h1>
+            <p class="text-gray-600">請先登入以繼續填寫表單</p>
+        </div>
+
+        <!-- LINE 登入按鈕 -->
+        <div id="loginSection" class="space-y-4">
+            <button id="lineLoginBtn" 
+                    class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all transform hover:scale-105 shadow-lg">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                </svg>
+                <span class="text-lg">使用 LINE 登入</span>
+            </button>
+            
+            <p class="text-xs text-gray-500 text-center">
+                登入後將導向至 Google 表單
+            </p>
+        </div>
+
+        <!-- 載入狀態 -->
+        <div id="loadingSection" class="hidden text-center space-y-4">
+            <div class="loading mx-auto"></div>
+            <p class="text-gray-600">處理登入中...</p>
+        </div>
+
+        <!-- 錯誤訊息 -->
+        <div id="errorSection" class="hidden space-y-4">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p class="font-semibold text-red-800 mb-2">⚠️ 登入錯誤</p>
+                <p class="text-sm text-red-600" id="errorMessage"></p>
+                <details class="mt-3">
+                    <summary class="text-xs text-red-500 cursor-pointer">除錯資訊</summary>
+                    <pre class="text-xs text-red-500 mt-2 overflow-auto" id="debugInfo"></pre>
+                </details>
+            </div>
+            <button id="retryBtn" 
+                    class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
+                重新嘗試
+            </button>
+        </div>
+
+        <!-- 已登入狀態 -->
+        <div id="loggedInSection" class="hidden space-y-4">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <img id="userAvatar" src="" alt="用戶頭像" class="w-12 h-12 rounded-full">
+                    <div>
+                        <p class="font-semibold text-gray-800" id="userName"></p>
+                        <p class="text-sm text-gray-600">登入成功！</p>
+                    </div>
+                </div>
+            </div>
+            <button id="proceedBtn" 
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
+                前往填寫表單
+            </button>
+            <button id="logoutBtn"
+                    class="w-full text-gray-600 hover:text-gray-800 font-medium py-2">
+                登出
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 設定區 ====================
+        // 請替換成您的 LINE Login Channel ID
+        const LINE_CHANNEL_ID = '2008866133';
+        
+        // 請替換成您的 Google 表單網址
+        const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScF8NinegKS4neb-VEoRODkO75Yps94bX0onfDB76QCQIMwOQ/viewform';
+        
+        // LINE Login 的回調網址（需與 LINE Developers 設定一致）
+        // 請確保這個網址與 LINE Developers Console 中設定的完全一致
+        const REDIRECT_URI = window.location.href.split('?')[0].split('#')[0];
+        
+        // 除錯模式
+        const DEBUG_MODE = true;
+        // ==================================================
+
+        const loginSection = document.getElementById('loginSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const loggedInSection = document.getElementById('loggedInSection');
+        const errorSection = document.getElementById('errorSection');
+        const lineLoginBtn = document.getElementById('lineLoginBtn');
+        const proceedBtn = document.getElementById('proceedBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        
+        // 除錯日誌
+        function debugLog(message, data) {
+            if (DEBUG_MODE) {
+                console.log('[LINE Login Debug]', message, data || '');
+            }
+        }
+
+        // 檢查是否已有登入資訊
+        function checkLoginStatus() {
+            const userProfile = localStorage.getItem('lineUserProfile');
+            if (userProfile) {
+                const profile = JSON.parse(userProfile);
+                showLoggedInState(profile);
+            }
+        }
+
+        // LINE 登入
+        function lineLogin() {
+            const state = generateRandomState();
+            const nonce = generateRandomState();
+            
+            // 儲存 state 以便驗證
+            sessionStorage.setItem('line_login_state', state);
+            
+            const authParams = {
+                response_type: 'code',
+                client_id: LINE_CHANNEL_ID,
+                redirect_uri: REDIRECT_URI,
+                state: state,
+                scope: 'profile openid',
+                nonce: nonce
+            };
+            
+            debugLog('登入參數', authParams);
+            debugLog('Redirect URI', REDIRECT_URI);
+            
+            // 構建 LINE Login URL
+            const lineAuthUrl = 'https://access.line.me/oauth2/v2.1/authorize?' + 
+                new URLSearchParams(authParams);
+            
+            debugLog('完整登入網址', lineAuthUrl);
+            
+            window.location.href = lineAuthUrl;
+        }
+
+        // 處理 LINE 回調
+        async function handleLineCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+            const error = params.get('error');
+            const errorDescription = params.get('error_description');
+
+            debugLog('回調參數', {
+                code: code ? '已收到' : '無',
+                state: state ? '已收到' : '無',
+                error: error,
+                errorDescription: errorDescription
+            });
+
+            if (error) {
+                showError(
+                    error === 'access_denied' ? '用戶取消登入' : '登入失敗',
+                    errorDescription || error,
+                    {
+                        error: error,
+                        description: errorDescription,
+                        currentUrl: window.location.href,
+                        redirectUri: REDIRECT_URI
+                    }
+                );
+                return;
+            }
+
+            if (code && state) {
+                const savedState = sessionStorage.getItem('line_login_state');
+                
+                if (state !== savedState) {
+                    alert('安全驗證失敗，請重新登入');
+                    return;
+                }
+
+                showLoading(true);
+                
+                // 注意：實際應用中，token 交換應該在後端進行
+                // 這裡提供前端實作僅供演示，生產環境請使用後端 API
+                try {
+                    const profile = await getLineProfile(code);
+                    localStorage.setItem('lineUserProfile', JSON.stringify(profile));
+                    
+                    // 清除 URL 參數
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    showLoggedInState(profile);
+                } catch (error) {
+                    debugLog('取得用戶資料失敗', error);
+                    showError(
+                        '登入處理失敗',
+                        error.message || '無法取得用戶資料',
+                        { error: error.toString() }
+                    );
+                }
+            }
+        }
+        
+        // 顯示錯誤訊息
+        function showError(title, message, debugData) {
+            loginSection.classList.add('hidden');
+            loadingSection.classList.add('hidden');
+            loggedInSection.classList.add('hidden');
+            errorSection.classList.remove('hidden');
+            
+            document.getElementById('errorMessage').textContent = message;
+            if (debugData) {
+                document.getElementById('debugInfo').textContent = JSON.stringify(debugData, null, 2);
+            }
+        }
+
+        // 取得 LINE 用戶資料（簡化版本）
+        async function getLineProfile(code) {
+            // 注意：這是簡化的實作
+            // 實際應用中，應該呼叫您的後端 API 來處理 token 交換和驗證
+            
+            // 這裡返回模擬數據
+            // 在實際應用中，您需要：
+            // 1. 用 code 換取 access token (在後端進行)
+            // 2. 用 access token 取得用戶資料
+            
+            return {
+                userId: 'demo_user_' + Date.now(),
+                displayName: '演示用戶',
+                pictureUrl: 'https://via.placeholder.com/150'
+            };
+        }
+
+        // 顯示已登入狀態
+        function showLoggedInState(profile) {
+            loginSection.classList.add('hidden');
+            loadingSection.classList.add('hidden');
+            loggedInSection.classList.remove('hidden');
+            
+            document.getElementById('userName').textContent = profile.displayName;
+            document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+        }
+
+        // 顯示載入狀態
+        function showLoading(show) {
+            if (show) {
+                loginSection.classList.add('hidden');
+                loggedInSection.classList.add('hidden');
+                loadingSection.classList.remove('hidden');
+            } else {
+                loadingSection.classList.add('hidden');
+                loginSection.classList.remove('hidden');
+            }
+        }
+
+        // 前往 Google 表單
+        function proceedToForm() {
+            window.location.href = GOOGLE_FORM_URL;
+        }
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('lineUserProfile');
+            loginSection.classList.remove('hidden');
+            loggedInSection.classList.add('hidden');
+        }
+
+        // 生成隨機 state
+        function generateRandomState() {
+            return Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+        }
+
+        // 重新嘗試
+        function retry() {
+            errorSection.classList.add('hidden');
+            loginSection.classList.remove('hidden');
+            // 清除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        // 事件監聽
+        lineLoginBtn.addEventListener('click', lineLogin);
+        proceedBtn.addEventListener('click', proceedToForm);
+        logoutBtn.addEventListener('click', logout);
+        retryBtn.addEventListener('click', retry);
+
+        // 初始化
+        checkLoginStatus();
+        handleLineCallback();
+    </script>
+</body>
+</html>
