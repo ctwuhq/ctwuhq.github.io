@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>攤商登入 - LINE Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         .loading {
             display: inline-block;
@@ -64,32 +65,12 @@
             </button>
         </div>
 
-        <!-- 已登入狀態 -->
-        <div id="loggedInSection" class="hidden space-y-4">
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="flex items-center gap-3">
-                    <img id="userAvatar" src="" alt="用戶頭像" class="w-12 h-12 rounded-full">
-                    <div>
-                        <p class="font-semibold text-gray-800" id="userName"></p>
-                        <p class="text-sm text-gray-600">登入成功！</p>
-                    </div>
-                </div>
-            </div>
-            <button id="proceedBtn" 
-                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
-                前往填寫表單
-            </button>
-            <button id="logoutBtn"
-                    class="w-full text-gray-600 hover:text-gray-800 font-medium py-2">
-                登出
-            </button>
-        </div>
     </div>
 
     <script>
         // ==================== 設定區 ====================
-        // 請替換成您的 LINE Login Channel ID
-        const LINE_CHANNEL_ID = '2008866133';
+        // 請替換成您的 LIFF ID（從 LINE Developers Console 取得）
+        const LIFF_ID = '2008866133-4Gc81R6j';
         
         // 請替換成您的 Google 表單網址
         const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScF8NinegKS4neb-VEoRODkO75Yps94bX0onfDB76QCQIMwOQ/viewform';
@@ -97,135 +78,84 @@
         const FORM_USER_ID_FIELD = 'entry.40472462';
         const FORM_DISPLAY_NAME_FIELD = 'entry.509094106';
         
-        // LINE Login 的回調網址（需與 LINE Developers 設定一致）
-        // ⚠️ 請在 LINE Developers Console 加入這個完整網址作為 Callback URL
-        const REDIRECT_URI = 'https://ctwuhq.github.io/stall-redirect.html';
-        
         // 除錯模式
         const DEBUG_MODE = true;
         // ==================================================
 
         const loginSection = document.getElementById('loginSection');
         const loadingSection = document.getElementById('loadingSection');
-        const loggedInSection = document.getElementById('loggedInSection');
         const errorSection = document.getElementById('errorSection');
         const lineLoginBtn = document.getElementById('lineLoginBtn');
-        const proceedBtn = document.getElementById('proceedBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
         const retryBtn = document.getElementById('retryBtn');
         
         // 除錯日誌
         function debugLog(message, data) {
             if (DEBUG_MODE) {
-                console.log('[LINE Login Debug]', message, data || '');
+                console.log('[LIFF Debug]', message, data || '');
             }
         }
 
-        // 檢查是否已有登入資訊
-        function checkLoginStatus() {
-            const userProfile = localStorage.getItem('lineUserProfile');
-            if (userProfile) {
-                const profile = JSON.parse(userProfile);
-                showLoggedInState(profile);
+        // 初始化 LIFF
+        async function initializeLiff() {
+            try {
+                debugLog('開始初始化 LIFF', LIFF_ID);
+                await liff.init({ liffId: LIFF_ID });
+                debugLog('LIFF 初始化成功');
+                
+                if (liff.isLoggedIn()) {
+                    debugLog('用戶已登入');
+                    await handleLoggedIn();
+                } else {
+                    debugLog('用戶未登入，顯示登入按鈕');
+                    showLoginSection();
+                }
+            } catch (error) {
+                debugLog('LIFF 初始化失敗', error);
+                showError('初始化失敗', error.message, { error: error.toString() });
             }
+        }
+
+        // 處理已登入狀態
+        async function handleLoggedIn() {
+            try {
+                showLoading(true);
+                const profile = await liff.getProfile();
+                debugLog('取得用戶資料', profile);
+                
+                const userProfile = {
+                    userId: profile.userId,
+                    displayName: profile.displayName,
+                    pictureUrl: profile.pictureUrl
+                };
+                
+                localStorage.setItem('lineUserProfile', JSON.stringify(userProfile));
+                
+                // 自動跳轉到 Google 表單
+                debugLog('跳轉到表單', buildPrefilledFormUrl(userProfile));
+                window.location.href = buildPrefilledFormUrl(userProfile);
+            } catch (error) {
+                debugLog('取得用戶資料失敗', error);
+                showError('取得用戶資料失敗', error.message, { error: error.toString() });
+            }
+        }
+
+        // 顯示登入區塊
+        function showLoginSection() {
+            loginSection.classList.remove('hidden');
+            loadingSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
         }
 
         // LINE 登入
         function lineLogin() {
-            const state = generateRandomState();
-            const nonce = generateRandomState();
-            
-            // 儲存 state 以便驗證
-            sessionStorage.setItem('line_login_state', state);
-            
-            const authParams = {
-                response_type: 'code',
-                client_id: LINE_CHANNEL_ID,
-                redirect_uri: REDIRECT_URI,
-                state: state,
-                scope: 'profile openid',
-                nonce: nonce
-            };
-            
-            debugLog('登入參數', authParams);
-            debugLog('Redirect URI', REDIRECT_URI);
-            
-            // 構建 LINE Login URL
-            const lineAuthUrl = 'https://access.line.me/oauth2/v2.1/authorize?' + 
-                new URLSearchParams(authParams);
-            
-            debugLog('完整登入網址', lineAuthUrl);
-            
-            window.location.href = lineAuthUrl;
-        }
-
-        // 處理 LINE 回調
-        async function handleLineCallback() {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            const state = params.get('state');
-            const error = params.get('error');
-            const errorDescription = params.get('error_description');
-
-            debugLog('回調參數', {
-                code: code ? '已收到' : '無',
-                state: state ? '已收到' : '無',
-                error: error,
-                errorDescription: errorDescription
-            });
-
-            if (error) {
-                showError(
-                    error === 'access_denied' ? '用戶取消登入' : '登入失敗',
-                    errorDescription || error,
-                    {
-                        error: error,
-                        description: errorDescription,
-                        currentUrl: window.location.href,
-                        redirectUri: REDIRECT_URI
-                    }
-                );
-                return;
-            }
-
-            if (code && state) {
-                const savedState = sessionStorage.getItem('line_login_state');
-                
-                if (state !== savedState) {
-                    alert('安全驗證失敗，請重新登入');
-                    return;
-                }
-
-                showLoading(true);
-                
-                // 注意：實際應用中，token 交換應該在後端進行
-                // 這裡提供前端實作僅供演示，生產環境請使用後端 API
-                try {
-                    const profile = await getLineProfile(code);
-                    localStorage.setItem('lineUserProfile', JSON.stringify(profile));
-                    
-                    // 清除 URL 參數
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    
-                    // ✅ 登入成功後自動跳轉到 Google 表單（預填 userId/displayName）
-                    window.location.href = buildPrefilledFormUrl(profile);
-                    return;
-                } catch (error) {
-                    debugLog('取得用戶資料失敗', error);
-                    showError(
-                        '登入處理失敗',
-                        error.message || '無法取得用戶資料',
-                        { error: error.toString() }
-                    );
-                }
-            }
+            debugLog('開始登入流程');
+            liff.login();
         }
         
         // 顯示錯誤訊息
         function showError(title, message, debugData) {
             loginSection.classList.add('hidden');
             loadingSection.classList.add('hidden');
-            loggedInSection.classList.add('hidden');
             errorSection.classList.remove('hidden');
             
             document.getElementById('errorMessage').textContent = message;
@@ -234,52 +164,14 @@
             }
         }
 
-        // 取得 LINE 用戶資料（簡化版本）
-        async function getLineProfile(code) {
-            // 注意：這是簡化的實作
-            // 實際應用中，應該呼叫您的後端 API 來處理 token 交換和驗證
-            
-            // 這裡返回模擬數據
-            // 在實際應用中，您需要：
-            // 1. 用 code 換取 access token (在後端進行)
-            // 2. 用 access token 取得用戶資料
-            
-            return {
-                userId: 'demo_user_' + Date.now(),
-                displayName: '演示用戶',
-                pictureUrl: 'https://via.placeholder.com/150'
-            };
-        }
-
-        // 顯示已登入狀態
-        function showLoggedInState(profile) {
-            loginSection.classList.add('hidden');
-            loadingSection.classList.add('hidden');
-            loggedInSection.classList.remove('hidden');
-            
-            document.getElementById('userName').textContent = profile.displayName;
-            document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
-        }
-
         // 顯示載入狀態
         function showLoading(show) {
             if (show) {
                 loginSection.classList.add('hidden');
-                loggedInSection.classList.add('hidden');
                 loadingSection.classList.remove('hidden');
             } else {
                 loadingSection.classList.add('hidden');
                 loginSection.classList.remove('hidden');
-            }
-        }
-
-        function getStoredProfile() {
-            const raw = localStorage.getItem('lineUserProfile');
-            if (!raw) return null;
-            try {
-                return JSON.parse(raw);
-            } catch (e) {
-                return null;
             }
         }
 
@@ -293,42 +185,18 @@
             return GOOGLE_FORM_URL + separator + params.toString();
         }
 
-        // 前往 Google 表單
-        function proceedToForm() {
-            const profile = getStoredProfile();
-            window.location.href = buildPrefilledFormUrl(profile);
-        }
-
-        // 登出
-        function logout() {
-            localStorage.removeItem('lineUserProfile');
-            loginSection.classList.remove('hidden');
-            loggedInSection.classList.add('hidden');
-        }
-
-        // 生成隨機 state
-        function generateRandomState() {
-            return Math.random().toString(36).substring(2, 15) + 
-                   Math.random().toString(36).substring(2, 15);
-        }
-
         // 重新嘗試
         function retry() {
             errorSection.classList.add('hidden');
-            loginSection.classList.remove('hidden');
-            // 清除 URL 參數
-            window.history.replaceState({}, document.title, window.location.pathname);
+            initializeLiff();
         }
         
         // 事件監聽
         lineLoginBtn.addEventListener('click', lineLogin);
-        proceedBtn.addEventListener('click', proceedToForm);
-        logoutBtn.addEventListener('click', logout);
         retryBtn.addEventListener('click', retry);
 
         // 初始化
-        checkLoginStatus();
-        handleLineCallback();
+        initializeLiff();
     </script>
 </body>
 </html>
