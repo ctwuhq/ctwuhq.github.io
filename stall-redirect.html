@@ -65,6 +65,32 @@
             </button>
         </div>
 
+        <!-- 已登入狀態 -->
+        <div id="loggedInSection" class="hidden space-y-4">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <img id="userAvatar" src="" alt="用戶頭像" class="w-12 h-12 rounded-full">
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800" id="userName"></p>
+                        <p class="text-xs text-gray-500" id="userId"></p>
+                    </div>
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <button id="proceedBtn" 
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg">
+                    前往填寫表單
+                </button>
+                <button id="logoutBtn"
+                        class="w-full text-gray-600 hover:text-gray-800 font-medium py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all">
+                    登出
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -85,8 +111,11 @@
         const loginSection = document.getElementById('loginSection');
         const loadingSection = document.getElementById('loadingSection');
         const errorSection = document.getElementById('errorSection');
+        const loggedInSection = document.getElementById('loggedInSection');
         const lineLoginBtn = document.getElementById('lineLoginBtn');
         const retryBtn = document.getElementById('retryBtn');
+        const proceedBtn = document.getElementById('proceedBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
         
         // 除錯日誌
         function debugLog(message, data) {
@@ -130,9 +159,8 @@
                 
                 localStorage.setItem('lineUserProfile', JSON.stringify(userProfile));
                 
-                // 自動跳轉到 Google 表單
-                debugLog('跳轉到表單', buildPrefilledFormUrl(userProfile));
-                window.location.href = buildPrefilledFormUrl(userProfile);
+                // 顯示已登入狀態
+                showLoggedInState(userProfile);
             } catch (error) {
                 debugLog('取得用戶資料失敗', error);
                 showError('取得用戶資料失敗', error.message, { error: error.toString() });
@@ -144,6 +172,7 @@
             loginSection.classList.remove('hidden');
             loadingSection.classList.add('hidden');
             errorSection.classList.add('hidden');
+            loggedInSection.classList.add('hidden');
         }
 
         // LINE 登入
@@ -156,6 +185,7 @@
         function showError(title, message, debugData) {
             loginSection.classList.add('hidden');
             loadingSection.classList.add('hidden');
+            loggedInSection.classList.add('hidden');
             errorSection.classList.remove('hidden');
             
             document.getElementById('errorMessage').textContent = message;
@@ -168,11 +198,25 @@
         function showLoading(show) {
             if (show) {
                 loginSection.classList.add('hidden');
+                loggedInSection.classList.add('hidden');
+                errorSection.classList.add('hidden');
                 loadingSection.classList.remove('hidden');
             } else {
                 loadingSection.classList.add('hidden');
                 loginSection.classList.remove('hidden');
             }
+        }
+
+        // 顯示已登入狀態
+        function showLoggedInState(profile) {
+            loginSection.classList.add('hidden');
+            loadingSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+            loggedInSection.classList.remove('hidden');
+            
+            document.getElementById('userName').textContent = profile.displayName;
+            document.getElementById('userId').textContent = 'ID: ' + profile.userId;
+            document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
         }
 
         // 構建帶預填資料的 Google 表單連結
@@ -185,6 +229,32 @@
             return GOOGLE_FORM_URL + separator + params.toString();
         }
 
+        // 前往 Google 表單
+        function proceedToForm() {
+            const profileStr = localStorage.getItem('lineUserProfile');
+            if (profileStr) {
+                try {
+                    const profile = JSON.parse(profileStr);
+                    window.location.href = buildPrefilledFormUrl(profile);
+                } catch (e) {
+                    window.location.href = GOOGLE_FORM_URL;
+                }
+            } else {
+                window.location.href = GOOGLE_FORM_URL;
+            }
+        }
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('lineUserProfile');
+            if (liff.isLoggedIn()) {
+                liff.logout();
+                window.location.reload();
+            } else {
+                showLoginSection();
+            }
+        }
+
         // 重新嘗試
         function retry() {
             errorSection.classList.add('hidden');
@@ -194,6 +264,8 @@
         // 事件監聽
         lineLoginBtn.addEventListener('click', lineLogin);
         retryBtn.addEventListener('click', retry);
+        proceedBtn.addEventListener('click', proceedToForm);
+        logoutBtn.addEventListener('click', logout);
 
         // 初始化
         initializeLiff();
