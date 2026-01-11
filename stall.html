@@ -82,9 +82,11 @@
             <div class="space-y-3">
                 <button id="proceedBtn" 
                         class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg">
-                    攤位預約登記表單
-                </button>
-                <button id="logoutBtn"
+                    攤位預約登記
+                </button>                <button id="updateBtn" 
+                        class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg">
+                    攤商資料更新
+                </button>                <button id="logoutBtn"
                         class="w-full text-gray-600 hover:text-gray-800 font-medium py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all">
                     登出
                 </button>
@@ -100,9 +102,15 @@
         
         // Google 攤位預約登記表單
         const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScF8NinegKS4neb-VEoRODkO75Yps94bX0onfDB76QCQIMwOQ/viewform';
-        // Google 表單欄位 entry ID（請替換成表單實際的 entry.X 代碼）
+        // Google 表單欄位 entry ID
         const FORM_USER_ID_FIELD = 'entry.40472462';
         const FORM_DISPLAY_NAME_FIELD = 'entry.509094106';
+        
+        // Google 攤商資料更新表單 (請替換成您的 Google 表單網址)
+        const GOOGLE_UPDATE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeQWpyjBQqxcoZ2YsS4-O7iTNiYba7rZaKDR0o_NLkauwYPjA/viewform';
+        // 資料更新表單欄位 entry ID
+        const UPDATE_FORM_USER_ID_FIELD = 'entry.2002122376';
+        const UPDATE_FORM_DISPLAY_NAME_FIELD = 'entry.468153838';
         
         // 除錯模式
         const DEBUG_MODE = true;
@@ -115,6 +123,7 @@
         const lineLoginBtn = document.getElementById('lineLoginBtn');
         const retryBtn = document.getElementById('retryBtn');
         const proceedBtn = document.getElementById('proceedBtn');
+        const updateBtn = document.getElementById('updateBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         
         // 除錯日誌
@@ -229,7 +238,17 @@
             return GOOGLE_FORM_URL + separator + params.toString();
         }
 
-        // 前往 Google 表單
+        // 構建資料更新表單的連結
+        function buildUpdateFormUrl(profile) {
+            if (!profile) return GOOGLE_UPDATE_FORM_URL;
+            const params = new URLSearchParams();
+            if (profile.userId && UPDATE_FORM_USER_ID_FIELD) params.set(UPDATE_FORM_USER_ID_FIELD, profile.userId);
+            if (profile.displayName && UPDATE_FORM_DISPLAY_NAME_FIELD) params.set(UPDATE_FORM_DISPLAY_NAME_FIELD, profile.displayName);
+            const separator = GOOGLE_UPDATE_FORM_URL.includes('?') ? '&' : '?';
+            return GOOGLE_UPDATE_FORM_URL + separator + params.toString();
+        }
+
+        // 前往攻位預約登記表單
         function proceedToForm() {
             const profileStr = localStorage.getItem('lineUserProfile');
             if (profileStr) {
@@ -241,6 +260,21 @@
                 }
             } else {
                 window.location.href = GOOGLE_FORM_URL;
+            }
+        }
+
+        // 前往資料更新表單
+        function proceedToUpdateForm() {
+            const profileStr = localStorage.getItem('lineUserProfile');
+            if (profileStr) {
+                try {
+                    const profile = JSON.parse(profileStr);
+                    window.location.href = buildUpdateFormUrl(profile);
+                } catch (e) {
+                    window.location.href = GOOGLE_UPDATE_FORM_URL;
+                }
+            } else {
+                window.location.href = GOOGLE_UPDATE_FORM_URL;
             }
         }
 
@@ -265,6 +299,7 @@
         lineLoginBtn.addEventListener('click', lineLogin);
         retryBtn.addEventListener('click', retry);
         proceedBtn.addEventListener('click', proceedToForm);
+        updateBtn.addEventListener('click', proceedToUpdateForm);
         logoutBtn.addEventListener('click', logout);
 
         // 初始化
