@@ -204,7 +204,9 @@
                     // 清除 URL 參數
                     window.history.replaceState({}, document.title, window.location.pathname);
                     
-                    showLoggedInState(profile);
+                    // ✅ 登入成功後自動跳轉到 Google 表單
+                    window.location.href = GOOGLE_FORM_URL;
+                    return;
                 } catch (error) {
                     debugLog('取得用戶資料失敗', error);
                     showError(
