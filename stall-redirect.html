@@ -95,8 +95,8 @@
         const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScF8NinegKS4neb-VEoRODkO75Yps94bX0onfDB76QCQIMwOQ/viewform';
         
         // LINE Login 的回調網址（需與 LINE Developers 設定一致）
-        // 請確保這個網址與 LINE Developers Console 中設定的完全一致
-        const REDIRECT_URI = window.location.href.split('?')[0].split('#')[0];
+        // ⚠️ 請在 LINE Developers Console 加入這個完整網址作為 Callback URL
+        const REDIRECT_URI = 'https://ctwuhq.github.io/stall-redirect.html';
         
         // 除錯模式
         const DEBUG_MODE = true;
