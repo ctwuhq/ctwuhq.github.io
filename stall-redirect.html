@@ -93,6 +93,9 @@
         
         // 請替換成您的 Google 表單網址
         const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScF8NinegKS4neb-VEoRODkO75Yps94bX0onfDB76QCQIMwOQ/viewform';
+        // Google 表單欄位 entry ID（請替換成表單實際的 entry.X 代碼）
+        const FORM_USER_ID_FIELD = 'entry.40472462';
+        const FORM_DISPLAY_NAME_FIELD = 'entry.509094106';
         
         // LINE Login 的回調網址（需與 LINE Developers 設定一致）
         // ⚠️ 請在 LINE Developers Console 加入這個完整網址作為 Callback URL
@@ -204,8 +207,8 @@
                     // 清除 URL 參數
                     window.history.replaceState({}, document.title, window.location.pathname);
                     
-                    // ✅ 登入成功後自動跳轉到 Google 表單
-                    window.location.href = GOOGLE_FORM_URL;
+                    // ✅ 登入成功後自動跳轉到 Google 表單（預填 userId/displayName）
+                    window.location.href = buildPrefilledFormUrl(profile);
                     return;
                 } catch (error) {
                     debugLog('取得用戶資料失敗', error);
@@ -270,9 +273,30 @@
             }
         }
 
+        function getStoredProfile() {
+            const raw = localStorage.getItem('lineUserProfile');
+            if (!raw) return null;
+            try {
+                return JSON.parse(raw);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 構建帶預填資料的 Google 表單連結
+        function buildPrefilledFormUrl(profile) {
+            if (!profile) return GOOGLE_FORM_URL;
+            const params = new URLSearchParams();
+            if (profile.userId && FORM_USER_ID_FIELD) params.set(FORM_USER_ID_FIELD, profile.userId);
+            if (profile.displayName && FORM_DISPLAY_NAME_FIELD) params.set(FORM_DISPLAY_NAME_FIELD, profile.displayName);
+            const separator = GOOGLE_FORM_URL.includes('?') ? '&' : '?';
+            return GOOGLE_FORM_URL + separator + params.toString();
+        }
+
         // 前往 Google 表單
         function proceedToForm() {
-            window.location.href = GOOGLE_FORM_URL;
+            const profile = getStoredProfile();
+            window.location.href = buildPrefilledFormUrl(profile);
         }
 
         // 登出
