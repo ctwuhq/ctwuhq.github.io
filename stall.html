@@ -83,10 +83,10 @@
                 <button id="proceedBtn" 
                         class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg">
                     攤位預約登記
-                </button>                <button id="updateBtn" 
+                </button>                <!-- <button id="updateBtn" 
                         class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg">
                     攤商資料更新
-                </button>                <button id="logoutBtn"
+                </button> -->                <button id="logoutBtn"
                         class="w-full text-gray-600 hover:text-gray-800 font-medium py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all">
                     登出
                 </button>
@@ -123,7 +123,7 @@
         const lineLoginBtn = document.getElementById('lineLoginBtn');
         const retryBtn = document.getElementById('retryBtn');
         const proceedBtn = document.getElementById('proceedBtn');
-        const updateBtn = document.getElementById('updateBtn');
+        // const updateBtn = document.getElementById('updateBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         
         // 除錯日誌
@@ -299,7 +299,7 @@
         lineLoginBtn.addEventListener('click', lineLogin);
         retryBtn.addEventListener('click', retry);
         proceedBtn.addEventListener('click', proceedToForm);
-        updateBtn.addEventListener('click', proceedToUpdateForm);
+        // updateBtn.addEventListener('click', proceedToUpdateForm);
         logoutBtn.addEventListener('click', logout);
 
         // 初始化
