@@ -29,6 +29,10 @@
       <button id="btn-next" class="nav-btn" aria-label="後一天" disabled>▶</button>
     </nav>
     <div id="updated-time" class="updated-time"></div>
+    <div class="view-tabs">
+      <button id="tab-list" class="tab-btn active" aria-pressed="true">☰ 列表</button>
+      <button id="tab-map"  class="tab-btn"        aria-pressed="false">🗺 地圖</button>
+    </div>
   </header>
 
   <div id="offline-banner" class="offline-banner" hidden aria-live="polite">
@@ -40,6 +44,7 @@
   </div>
 
   <main id="booth-list" class="booth-list" aria-label="攤位列表"></main>
+  <main id="booth-map" class="booth-map" aria-label="攤位地圖" hidden></main>
 
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>

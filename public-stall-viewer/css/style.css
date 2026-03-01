@@ -204,10 +204,131 @@ body {
   background: var(--card-bg);
 }
 
+/* ── View tabs ── */
+.view-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tab-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.tab-btn.active {
+  background: rgba(255,255,255,0.9);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── Booth map ── */
+.booth-map {
+  flex: 1;
+  padding: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.floor-grid {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr 1fr 52px;
+  grid-template-rows: 44px 100px 100px 100px 100px;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* 地標 */
+.lm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #999;
+  background: #efefef;
+  border: 1.5px dashed #ccc;
+  text-align: center;
+  line-height: 1.3;
+}
+.lm-elevator { font-size: 0.85rem; color: #666; background: #e4e4e4; }
+.lm-side { writing-mode: vertical-rl; font-size: 0.7rem; }
+
+/* 攤位卡片 */
+.mc-card {
+  border-radius: 10px;
+  padding: 8px 6px;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 2px solid transparent;
+}
+.mc-card:active { transform: scale(0.97); }
+.mc-occupied { background: #e8f5e9; border-color: #4caf50; }
+.mc-vacant   { background: #f5f5f5; border-color: #e0e0e0; }
+.mc-card.mc-selected { box-shadow: 0 0 0 3px var(--primary); transform: translateY(-2px); }
+
+.mc-no   { font-size: 1.1rem; font-weight: 700; color: #333; }
+.mc-name { font-size: 0.7rem; color: #555; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mc-empty-text { color: #bbb; }
+.mc-tag  { font-size: 0.6rem; color: #888; background: #fff; padding: 1px 5px; border-radius: 999px; border: 1px solid #ddd; }
+
+/* 地圖詳情 */
+.map-detail {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 6px;
+}
+.detail-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+.detail-row {
+  display: flex;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+.detail-row span { color: var(--text-secondary); min-width: 56px; }
+.detail-row strong { color: var(--text); }
+.detail-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
 /* ── Desktop ── */
 @media (min-width: 768px) {
   .header h1 { font-size: 1.5rem; }
   .booth-list { padding: 20px; }
+  .booth-map  { padding: 20px; }
   .booth-card { margin-bottom: 10px; }
   .booth-no { width: 72px; min-width: 72px; font-size: 1.25rem; }
+  .floor-grid {
+    grid-template-columns: 68px 1fr 1fr 1fr 68px;
+    grid-template-rows: 52px 110px 110px 110px 110px;
+    gap: 10px;
+  }
+  .mc-no { font-size: 1.3rem; }
+  .mc-name { font-size: 0.8rem; }
 }
