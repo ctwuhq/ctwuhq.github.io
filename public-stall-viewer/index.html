@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+  </script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a73e8">
+  <title>B1攤位每日公告</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+  <header class="header">
+    <h1>🏪 B1 攤位今日公告</h1>
+    <nav class="date-nav" aria-label="日期切換">
+      <button id="btn-prev" class="nav-btn" aria-label="前一天" disabled>◀</button>
+      <span id="current-date" class="date-display">載入中…</span>
+      <span id="date-badge" class="badge"></span>
+      <button id="btn-next" class="nav-btn" aria-label="後一天" disabled>▶</button>
+    </nav>
+    <div id="updated-time" class="updated-time"></div>
+  </header>
+
+  <div id="offline-banner" class="offline-banner" hidden aria-live="polite">
+    ⚠️ 目前離線，顯示的是快取資料，非即時。
+  </div>
+
+  <div id="loading" class="loading" aria-live="polite">
+    <div class="spinner" role="status"><span class="sr-only"></span></div>
+  </div>
+
+  <main id="booth-list" class="booth-list" aria-label="攤位列表"></main>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
