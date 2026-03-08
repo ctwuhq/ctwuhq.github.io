@@ -242,7 +242,7 @@ body {
 .floor-grid {
   display: grid;
   grid-template-columns: 52px 1fr 1fr 1fr 52px;
-  grid-template-rows: 44px 115px 115px 115px 115px;
+  grid-template-rows: 44px repeat(4, minmax(90px, auto));
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -278,14 +278,56 @@ body {
   transition: transform 0.15s, box-shadow 0.15s;
   border: 2px solid transparent;
   overflow: hidden;
+  position: relative;
 }
 .mc-card:active { transform: scale(0.97); }
 .mc-occupied { background: #e8f5e9; border-color: #4caf50; }
 .mc-vacant   { background: #f5f5f5; border-color: #e0e0e0; }
 .mc-card.mc-selected { box-shadow: 0 0 0 3px var(--primary); transform: translateY(-2px); }
 
+/* 類別背景色 */
+.mc-cat-food    { background: #fff3e0; border-color: #ff9800; }
+.mc-cat-clothes { background: #e8eaf6; border-color: #5c6bc0; }
+.mc-cat-daily   { background: #e8f5e9; border-color: #4caf50; }
+.mc-cat-fresh   { background: #f1f8e9; border-color: #8bc34a; }
+.mc-cat-other   { background: #f5f5f5; border-color: #9e9e9e; }
+
+/* 右上角類別角標 */
+.mc-badge {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.mc-cat-food    .mc-badge { background: #ff9800; }
+.mc-cat-clothes .mc-badge { background: #5c6bc0; }
+.mc-cat-daily   .mc-badge { background: #4caf50; }
+.mc-cat-fresh   .mc-badge { background: #8bc34a; }
+.mc-cat-other   .mc-badge { background: #9e9e9e; }
+
+/* 類別圖例 */
+.cat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 8px 4px 12px;
+  font-size: 0.72rem;
+  color: #666;
+}
+.cat-legend-item { display: flex; align-items: center; gap: 4px; }
+.cat-legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
 .mc-no   { font-size: 1.1rem; font-weight: 700; color: #333; line-height: 1.2; }
-.mc-name { font-size: 0.72rem; color: #555; overflow: hidden; text-overflow: ellipsis; width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; word-break: break-all; }
+.mc-name { font-size: 0.8rem; color: #555; overflow: hidden; text-overflow: ellipsis; width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; max-height: 2.7em; word-break: break-all; }
 .mc-empty-text { color: #bbb; }
 .mc-tag  { font-size: 0.6rem; color: #888; background: #fff; padding: 1px 5px; border-radius: 999px; border: 1px solid #ddd; line-height: 1.2; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
@@ -327,11 +369,11 @@ body {
   .booth-no { width: 72px; min-width: 72px; font-size: 1.25rem; }
   .floor-grid {
     grid-template-columns: 68px 1fr 1fr 1fr 68px;
-    grid-template-rows: 52px 125px 125px 125px 125px;
+    grid-template-rows: 52px repeat(4, minmax(100px, auto));
     gap: 10px;
   }
   .mc-no { font-size: 1.3rem; }
-  .mc-name { font-size: 0.8rem; }
+  .mc-name { font-size: 0.85rem; }
 }
 
 /* ── Small phones (≤ 400px) ── */
@@ -345,7 +387,7 @@ body {
   .booth-map { padding: 8px; }
   .floor-grid {
     grid-template-columns: 40px 1fr 1fr 1fr 40px;
-    grid-template-rows: 38px 105px 105px 105px 105px;
+    grid-template-rows: 38px repeat(4, minmax(85px, auto));
     gap: 5px;
   }
   .lm { font-size: 0.65rem; }

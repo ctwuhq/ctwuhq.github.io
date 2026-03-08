@@ -223,6 +223,17 @@
     [13, 4, 5],
   ];
 
+  // 類別 → { CSS class, 角標字, 圖例顏色 }
+  const CAT_MAP = {
+    '食品/餐飲': { cls: 'mc-cat-food',    abbr: '食', color: '#ff9800' },
+    '服飾/織品': { cls: 'mc-cat-clothes', abbr: '飾', color: '#5c6bc0' },
+    '生活/百貨': { cls: 'mc-cat-daily',   abbr: '百', color: '#4caf50' },
+    '生鮮/農產': { cls: 'mc-cat-fresh',   abbr: '農', color: '#8bc34a' },
+  };
+  function getCat(cat) {
+    return CAT_MAP[cat] || { cls: 'mc-cat-other', abbr: '他', color: '#9e9e9e' };
+  }
+
   function renderMap(dayRows) {
     const boothMap = {};
     dayRows.forEach(r => { boothMap[r.booth_no] = r; });
@@ -242,11 +253,16 @@
     FLOOR_LAYOUT.forEach(([no, col, row]) => {
       const r = boothMap[no];
       const occupied = r && r.vendor_no;
-      const cls = occupied ? "mc-card mc-occupied" : "mc-card mc-vacant";
+      const catInfo = occupied && r.category ? getCat(r.category) : null;
+      const cls = occupied
+        ? `mc-card mc-occupied${catInfo ? ' ' + catInfo.cls : ''}`
+        : 'mc-card mc-vacant';
       const vendorHtml = occupied
-        ? `<div class="mc-name">${escapeHtml(r.vendor_name)}</div>
-           ${r.category ? `<div class="mc-tag">${escapeHtml(r.category)}</div>` : ""}`
+        ? `<div class="mc-name">${escapeHtml(r.vendor_name)}</div>`
         : `<div class="mc-name mc-empty-text">空位</div>`;
+      const badgeHtml = catInfo
+        ? `<div class="mc-badge">${catInfo.abbr}</div>`
+        : '';
 
       html += `
         <div class="${cls}" style="grid-column:${col};grid-row:${row};"
@@ -255,12 +271,20 @@
              data-category="${escapeHtml(occupied ? (r.category||"") : "")}"
              data-product="${escapeHtml(occupied ? (r.product||"") : "")}"
              data-occupied="${occupied ? "1" : "0"}">
+          ${badgeHtml}
           <div class="mc-no">${no}號</div>
           ${vendorHtml}
         </div>`;
     });
 
+    // 類別圖例
+    const legendItems = Object.entries(CAT_MAP).map(([name, info]) =>
+      `<span class="cat-legend-item">
+        <span class="cat-legend-dot" style="background:${info.color};"></span>${name}
+       </span>`
+    ).join('');
     html += `</div>
+    <div class="cat-legend">${legendItems}</div>
     <div id="map-detail" class="map-detail" hidden></div>`;
 
     $boothMap.innerHTML = html;
