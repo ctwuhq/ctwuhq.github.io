@@ -332,3 +332,25 @@ body {
   .mc-no { font-size: 1.3rem; }
   .mc-name { font-size: 0.8rem; }
 }
+
+/* ── Small phones (≤ 400px) ── */
+@media (max-width: 400px) {
+  .header h1 { font-size: 1.05rem; margin-bottom: 6px; }
+  .date-display { font-size: 0.95rem; }
+  .badge { font-size: 0.72rem; }
+  .date-nav { gap: 6px; }
+  .nav-btn { width: 30px; height: 30px; font-size: 1rem; }
+
+  .booth-map { padding: 8px; }
+  .floor-grid {
+    grid-template-columns: 40px 1fr 1fr 1fr 40px;
+    grid-template-rows: 38px 90px 90px 90px 90px;
+    gap: 5px;
+  }
+  .lm { font-size: 0.65rem; }
+  .lm-side { font-size: 0.6rem; }
+  .mc-card { padding: 5px 3px; gap: 2px; }
+  .mc-no { font-size: 0.95rem; }
+  .mc-name { font-size: 0.65rem; -webkit-line-clamp: 1; }
+  .mc-tag { display: none; }
+}
