@@ -32,6 +32,7 @@
   $nextBtn.addEventListener("click", () => navigate(1));
   $tabList.addEventListener("click", () => switchView("list"));
   $tabMap.addEventListener("click", () => switchView("map"));
+  $boothList.addEventListener("click", handleListClick);
 
   async function init() {
     if (!navigator.onLine) isOffline = true;
@@ -59,7 +60,8 @@
       const [rows, log] = await Promise.all([fetchSheet(), fetchLog()]);
       allRows = parseRows(rows);
       lastUpdated = parseLog(log);
-      availableDates = [...new Set(allRows.map(r => r.date))].sort();
+      const _today = new Date().toISOString().slice(0, 10);
+      availableDates = [...new Set(allRows.map(r => r.date))].sort().filter(d => d >= _today);
       jumpToToday();
     } catch (err) {
       console.error("資料載入失敗", err);
@@ -128,6 +130,27 @@
     render();
   }
 
+  // ── 未來擺攤排程輔助 ──
+  function getFutureSchedule(vendorNo, vendorName) {
+    const currentDate = availableDates[currentIndex] || "";
+    return allRows
+      .filter(r => (vendorNo ? r.vendor_no === vendorNo : r.vendor_name === vendorName) && r.date > currentDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function buildScheduleHtml(futureDates) {
+    if (futureDates.length === 0) {
+      return `<div class="detail-schedule"><div class="sched-none">（本次是最近一場）</div></div>`;
+    }
+    const items = futureDates.map(r =>
+      `<div class="sched-item">
+         <span class="sched-date">${r.date.replace(/-/g, '/')} (${r.weekday})</span>
+         <span class="sched-booth">${r.booth_no}號</span>
+       </div>`
+    ).join('');
+    return `<div class="detail-schedule"><div class="sched-title">📅 之後擺攤日期</div>${items}</div>`;
+  }
+
   // ── Rendering ──
   function render() {
     if (availableDates.length === 0 || currentIndex < 0) {
@@ -150,16 +173,11 @@
     if (dateStr === today) {
       $badge.textContent = "📍 今日";
       $badge.className = "badge badge-today";
-      $date.classList.remove("past");
-    } else if (dateStr < today) {
-      $badge.textContent = "（已過）";
-      $badge.className = "badge badge-past";
-      $date.classList.add("past");
     } else {
       $badge.textContent = "";
       $badge.className = "badge";
-      $date.classList.remove("past");
     }
+    $date.classList.remove("past");
 
     $updated.textContent = lastUpdated ? `更新時間：${lastUpdated}` : "";
 
@@ -181,7 +199,10 @@
       if (r && r.vendor_no) {
         const detail = [r.category, r.product].filter(Boolean).join("｜");
         html += `
-          <article class="booth-card">
+          <article class="booth-card booth-clickable"
+                   data-booth-no="${i}"
+                   data-vendor-no="${escapeHtml(r.vendor_no)}"
+                   data-vendor-name="${escapeHtml(r.vendor_name)}">
             <div class="booth-no">${i}號</div>
             <div class="booth-info">
               <div class="vendor-name">${escapeHtml(r.vendor_name)}</div>
@@ -198,6 +219,7 @@
           </article>`;
       }
     }
+    html += `<div id="list-detail" class="map-detail" hidden></div>`;
     $boothList.innerHTML = html;
   }
 
@@ -272,6 +294,7 @@
         <div class="${cls}" style="grid-column:${col};grid-row:${row};"
              onclick="mapClick(event,${no})"
              data-no="${no}" data-name="${escapeHtml(occupied ? r.vendor_name : "")}"
+             data-vendor-no="${escapeHtml(occupied ? r.vendor_no : "")}"
              data-category="${escapeHtml(occupied ? (r.category||"") : "")}"
              data-product="${escapeHtml(occupied ? (r.product||"") : "")}"
              data-occupied="${occupied ? "1" : "0"}">
@@ -317,15 +340,38 @@
       const name = card.dataset.name;
       const cat = card.dataset.category;
       const prod = card.dataset.product;
+      const vendorNo = card.dataset.vendorNo;
+      const futureDates = getFutureSchedule(vendorNo, name);
       detail.innerHTML = `
         <div class="detail-header">${no}號攤位</div>
         <div class="detail-row"><span>攤商名稱</span><strong>${name}</strong></div>
         ${cat ? `<div class="detail-row"><span>類別</span><strong>${cat}</strong></div>` : ""}
         ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${prod}</strong></div>` : ""}
+        ${buildScheduleHtml(futureDates)}
       `;
     }
     detail.hidden = false;
   };
+
+  function handleListClick(e) {
+    const card = e.target.closest(".booth-clickable");
+    if (!card) return;
+    $boothList.querySelectorAll(".booth-clickable.selected").forEach(el => el.classList.remove("selected"));
+    card.classList.add("selected");
+    const detail = document.getElementById("list-detail");
+    if (!detail) return;
+    const boothNo = card.dataset.boothNo;
+    const vendorNo = card.dataset.vendorNo;
+    const vendorName = card.dataset.vendorName;
+    const futureDates = getFutureSchedule(vendorNo, vendorName);
+    detail.innerHTML = `
+      <div class="detail-header">${boothNo}號攤位</div>
+      <div class="detail-row"><span>攤商名稱</span><strong>${vendorName}</strong></div>
+      ${buildScheduleHtml(futureDates)}
+    `;
+    detail.hidden = false;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   function updateNavButtons() {
     $prevBtn.disabled = currentIndex <= 0;

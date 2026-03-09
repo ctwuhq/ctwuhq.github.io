@@ -172,6 +172,19 @@ body {
   background: var(--empty-bg);
 }
 
+.booth-card.booth-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+.booth-card.booth-clickable:hover {
+  background-color: #f0f4ff;
+  box-shadow: 0 2px 8px rgba(21,101,192,0.15);
+}
+.booth-card.booth-clickable.selected {
+  border: 2px solid var(--primary);
+  background-color: #e8eeff;
+}
+
 .booth-no {
   width: 60px;
   min-width: 60px;
@@ -383,6 +396,40 @@ body {
   color: var(--text-secondary);
   font-size: 0.9rem;
   padding: 8px 0;
+}
+
+/* ── 未來擺攤排程 ── */
+.detail-schedule {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.sched-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.sched-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.sched-item:last-child { border-bottom: none; }
+.sched-date { color: var(--text); }
+.sched-booth {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 32px;
+  text-align: right;
+}
+.sched-none {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* ── Desktop ── */
