@@ -2,7 +2,7 @@
 //
 // 部署新版本時，只要修改 CACHE_VERSION 即可讓所有使用者拿到新檔案。
 // 格式建議：YYYY-MM-DD 或遞增版號
-const CACHE_VERSION = "2026-03-09d";
+const CACHE_VERSION = "2026-03-09f";
 const CACHE_NAME = `b1-stall-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [

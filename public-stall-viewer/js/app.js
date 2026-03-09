@@ -10,19 +10,24 @@
   let lastUpdated = "";
   let isOffline = false;
   let viewMode = "list"; // "list" | "map"
+  let showEmpty = true;    // 顯示空位
+  let activeCat  = null;   // 類別篩選（null = 全部）
+  let _cachedDayRows = []; // 供篩選重繪使用
 
   // ── DOM refs ──
   const $date = document.getElementById("current-date");
   const $badge = document.getElementById("date-badge");
   const $updated = document.getElementById("updated-time");
-  const $boothList = document.getElementById("booth-list");
-  const $boothMap = document.getElementById("booth-map");
+  const $boothList   = document.getElementById("booth-list");
+  const $boothMap    = document.getElementById("booth-map");
+  const $boothSearch = document.getElementById("booth-search");
   const $prevBtn = document.getElementById("btn-prev");
   const $nextBtn = document.getElementById("btn-next");
   const $offlineBanner = document.getElementById("offline-banner");
   const $loading = document.getElementById("loading");
-  const $tabList = document.getElementById("tab-list");
-  const $tabMap = document.getElementById("tab-map");
+  const $tabList   = document.getElementById("tab-list");
+  const $tabMap    = document.getElementById("tab-map");
+  const $tabSearch = document.getElementById("tab-search");
 
   // ── Init ──
   window.addEventListener("load", init);
@@ -32,6 +37,7 @@
   $nextBtn.addEventListener("click", () => navigate(1));
   $tabList.addEventListener("click", () => switchView("list"));
   $tabMap.addEventListener("click", () => switchView("map"));
+  $tabSearch.addEventListener("click", () => switchView("search"));
   $boothList.addEventListener("click", handleListClick);
 
   async function init() {
@@ -46,11 +52,18 @@
     viewMode = mode;
     $tabList.classList.toggle("active", mode === "list");
     $tabMap.classList.toggle("active", mode === "map");
+    $tabSearch.classList.toggle("active", mode === "search");
     $tabList.setAttribute("aria-pressed", mode === "list");
     $tabMap.setAttribute("aria-pressed", mode === "map");
+    $tabSearch.setAttribute("aria-pressed", mode === "search");
     $boothList.hidden = mode !== "list";
     $boothMap.hidden = mode !== "map";
-    render();
+    $boothSearch.hidden = mode !== "search";
+    if (mode === "search") {
+      renderSearch();
+    } else {
+      render();
+    }
   }
 
   // ── Data fetching ──
@@ -138,7 +151,7 @@
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  function buildScheduleHtml(futureDates) {
+  function buildScheduleHtml(futureDates, title = "📅 之後擺攤日期") {
     if (futureDates.length === 0) {
       return `<div class="detail-schedule"><div class="sched-none">（本次是最近一場）</div></div>`;
     }
@@ -148,7 +161,7 @@
          <span class="sched-booth">${r.booth_no}號</span>
        </div>`
     ).join('');
-    return `<div class="detail-schedule"><div class="sched-title">📅 之後擺攤日期</div>${items}</div>`;
+    return `<div class="detail-schedule"><div class="sched-title">${title}</div>${items}</div>`;
   }
 
   // ── Rendering ──
@@ -190,26 +203,60 @@
   }
 
   function renderBooths(dayRows) {
+    _cachedDayRows = dayRows;
     const boothMap = {};
     dayRows.forEach(r => { boothMap[r.booth_no] = r; });
 
-    let html = "";
+    // 今日已存在的類別
+    const catsInDay = [...new Set(dayRows.filter(r => r.vendor_no && r.category).map(r => r.category))];
+
+    // ── 篩選列 ──
+    let filterChips = `<button class="filter-chip${!activeCat ? ' active' : ''}" data-cat="">全部</button>`;
+    catsInDay.forEach(cat => {
+      const ci = getCat(cat);
+      const isActive = activeCat === cat;
+      filterChips += `<button class="filter-chip${isActive ? ' active' : ''}" data-cat="${escapeHtml(cat)}" style="--chip-color:${ci.color};">${ci.abbr} ${cat.split('/')[0]}</button>`;
+    });
+    const hideLabel = showEmpty ? '👁 含空位' : '🙈 僅有攤';
+    let html = `
+      <div class="list-filter-bar">
+        <div class="list-filter-cats">${filterChips}</div>
+        <button class="hide-empty-btn${showEmpty ? '' : ' active'}" data-action="toggle-empty">${hideLabel}</button>
+      </div>`;
+
+    // ── 攤位卡片 ──
+    let cardCount = 0;
     for (let i = 1; i <= CONFIG.BOOTH_COUNT; i++) {
       const r = boothMap[i];
       if (r && r.vendor_no) {
-        const detail = [r.category, r.product].filter(Boolean).join("｜");
+        if (activeCat && r.category !== activeCat) continue;
+        const catInfo = r.category ? getCat(r.category) : null;
+        const catColor = catInfo ? catInfo.color : '#bbb';
+        const catAbbr  = catInfo ? catInfo.abbr  : '';
+        const futureCount = getFutureSchedule(r.vendor_no, r.vendor_name).length;
+        const futureHtml = futureCount > 0
+          ? `<div class="booth-future-hint">還有<br><strong>${futureCount}</strong>場</div>`
+          : `<div class="booth-future-hint last-time">最後<br>一場</div>`;
+        cardCount++;
         html += `
           <article class="booth-card booth-clickable"
                    data-booth-no="${i}"
                    data-vendor-no="${escapeHtml(r.vendor_no)}"
-                   data-vendor-name="${escapeHtml(r.vendor_name)}">
+                   data-vendor-name="${escapeHtml(r.vendor_name)}"
+                   style="border-left: 4px solid ${catColor};">
             <div class="booth-no">${i}號</div>
             <div class="booth-info">
-              <div class="vendor-name">${escapeHtml(r.vendor_name)}</div>
-              <div class="vendor-detail">${escapeHtml(detail)}</div>
+              <div class="vendor-name">
+                ${escapeHtml(r.vendor_name)}
+                ${catAbbr ? `<span class="list-cat-chip" style="background:${catColor};">${catAbbr}</span>` : ''}
+              </div>
+              ${r.product ? `<div class="vendor-detail">${escapeHtml(r.product)}</div>` : ''}
             </div>
+            ${futureHtml}
           </article>`;
       } else {
+        if (!showEmpty || activeCat) continue;
+        cardCount++;
         html += `
           <article class="booth-card booth-empty">
             <div class="booth-no">${i}號</div>
@@ -218,6 +265,9 @@
             </div>
           </article>`;
       }
+    }
+    if (cardCount === 0) {
+      html += `<p class="empty-msg">今日無符合條件的攤位</p>`;
     }
     html += `<div id="list-detail" class="map-detail" hidden></div>`;
     $boothList.innerHTML = html;
@@ -354,6 +404,21 @@
   };
 
   function handleListClick(e) {
+    // 類別篩選 chip
+    const chip = e.target.closest(".filter-chip");
+    if (chip) {
+      activeCat = chip.dataset.cat || null;
+      renderBooths(_cachedDayRows);
+      return;
+    }
+    // 顯示/隱藏空位 toggle
+    const hideBtn = e.target.closest(".hide-empty-btn");
+    if (hideBtn) {
+      showEmpty = !showEmpty;
+      renderBooths(_cachedDayRows);
+      return;
+    }
+    // 攤位卡片點擊
     const card = e.target.closest(".booth-clickable");
     if (!card) return;
     $boothList.querySelectorAll(".booth-clickable.selected").forEach(el => el.classList.remove("selected"));
@@ -371,6 +436,82 @@
     `;
     detail.hidden = false;
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── 搜尋視圖 ──
+  function renderSearch() {
+    $boothSearch.innerHTML = `
+      <div class="search-bar-wrapper">
+        <input type="search" id="search-input" class="search-input"
+               placeholder="搜尋攤商名稱或品項…" autocomplete="off" inputmode="search" />
+      </div>
+      <div id="search-results" class="search-results">
+        <p class="search-hint">輸入關鍵字，搜尋今日起的出攤廠商</p>
+      </div>
+    `;
+    const input = document.getElementById("search-input");
+    input.addEventListener("input", debounce(() => performSearch(input.value.trim()), 200));
+    setTimeout(() => input.focus(), 100);
+  }
+
+  function performSearch(query) {
+    const $results = document.getElementById("search-results");
+    if (!$results) return;
+
+    if (query.length === 0) {
+      $results.innerHTML = '<p class="search-hint">輸入關鍵字，搜尋今日起的出攤廠商</p>';
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const q = query.toLowerCase();
+    const matchRows = allRows.filter(r =>
+      r.date >= today && r.vendor_no &&
+      (r.vendor_name.toLowerCase().includes(q) || r.product.toLowerCase().includes(q))
+    );
+
+    if (matchRows.length === 0) {
+      $results.innerHTML = `<p class="search-hint">找不到「${escapeHtml(query)}」的相關廠商</p>`;
+      return;
+    }
+
+    // 依廠商分組
+    const groups = {};
+    matchRows.forEach(r => {
+      const key = r.vendor_no || r.vendor_name;
+      if (!groups[key]) {
+        groups[key] = { vendor_no: r.vendor_no, vendor_name: r.vendor_name, category: r.category, products: new Set(), dates: [] };
+      }
+      if (r.product) groups[key].products.add(r.product);
+      groups[key].dates.push(r);
+    });
+    Object.values(groups).forEach(g => g.dates.sort((a, b) => a.date.localeCompare(b.date)));
+    const sortedGroups = Object.values(groups).sort((a, b) => a.dates[0].date.localeCompare(b.dates[0].date));
+
+    const cards = sortedGroups.map(g => {
+      const catInfo = g.category ? getCat(g.category) : null;
+      const badgeHtml = catInfo
+        ? `<span class="src-cat-badge" style="background:${catInfo.color};">${catInfo.abbr}</span>`
+        : '';
+      const products = [...g.products].filter(Boolean).join('、');
+      const schedHtml = buildScheduleHtml(g.dates, '📅 擺攤日期');
+      return `
+        <div class="search-result-card">
+          <div class="src-header">
+            ${badgeHtml}
+            <span class="src-name">${escapeHtml(g.vendor_name)}</span>
+          </div>
+          ${products ? `<div class="src-product">品項：${escapeHtml(products)}</div>` : ''}
+          ${schedHtml}
+        </div>`;
+    }).join('');
+
+    $results.innerHTML = cards;
+  }
+
+  function debounce(fn, delay) {
+    let timer;
+    return function (...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), delay); };
   }
 
   function updateNavButtons() {
