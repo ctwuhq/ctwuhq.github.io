@@ -224,14 +224,18 @@
   ];
 
   // 類別 → { CSS class, 角標字, 圖例顏色 }
+  // 前 5 大類別各有專屬顏色；珠寶/飾品 與 服飾/織品 合併同色
   const CAT_MAP = {
-    '食品/餐飲': { cls: 'mc-cat-food',    abbr: '食', color: '#ff9800' },
-    '服飾/織品': { cls: 'mc-cat-clothes', abbr: '飾', color: '#5c6bc0' },
-    '生活/百貨': { cls: 'mc-cat-daily',   abbr: '百', color: '#4caf50' },
-    '生鮮/農產': { cls: 'mc-cat-fresh',   abbr: '農', color: '#8bc34a' },
+    '食品/餐飲': { cls: 'mc-cat-food',    abbr: '食', color: '#F57C00' },
+    '生活/百貨': { cls: 'mc-cat-daily',   abbr: '百', color: '#1565C0' },
+    '服飾/織品': { cls: 'mc-cat-clothes', abbr: '飾', color: '#6A1B9A' },
+    '珠寶/飾品': { cls: 'mc-cat-clothes', abbr: '飾', color: '#6A1B9A' },
+    '生鮮/農產': { cls: 'mc-cat-fresh',   abbr: '農', color: '#00796B' },
+    '鞋包/皮件': { cls: 'mc-cat-shoes',   abbr: '鞋', color: '#5D4037' },
   };
+  // 其餘類別歸入「其他」
   function getCat(cat) {
-    return CAT_MAP[cat] || { cls: 'mc-cat-other', abbr: '他', color: '#9e9e9e' };
+    return CAT_MAP[cat] || { cls: 'mc-cat-other', abbr: '他', color: '#757575' };
   }
 
   function renderMap(dayRows) {
@@ -277,10 +281,18 @@
         </div>`;
     });
 
-    // 類別圖例
-    const legendItems = Object.entries(CAT_MAP).map(([name, info]) =>
+    // 類別圖例（去除重複 cls，合併同色類別）
+    const LEGEND_ITEMS = [
+      { label: '食品/餐飲', color: '#F57C00' },
+      { label: '生活/百貨', color: '#1565C0' },
+      { label: '服飾‧飾品', color: '#6A1B9A' },
+      { label: '生鮮/農產', color: '#00796B' },
+      { label: '鞋包/皮件', color: '#5D4037' },
+      { label: '其他',      color: '#757575' },
+    ];
+    const legendItems = LEGEND_ITEMS.map(({ label, color }) =>
       `<span class="cat-legend-item">
-        <span class="cat-legend-dot" style="background:${info.color};"></span>${name}
+        <span class="cat-legend-dot" style="background:${color};"></span>${label}
        </span>`
     ).join('');
     html += `</div>

@@ -39,6 +39,10 @@
     ⚠️ 目前離線，顯示的是快取資料，非即時。
   </div>
 
+  <div id="update-banner" class="update-banner" hidden aria-live="polite">
+    🆕 網頁已更新！<button id="update-reload-btn">立即重新整理</button>
+  </div>
+
   <div id="loading" class="loading" aria-live="polite">
     <div class="spinner" role="status"><span class="sr-only"></span></div>
   </div>
@@ -48,5 +52,33 @@
 
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // Service Worker 註冊與更新通知
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").then((reg) => {
+        // 偵測到有新版 SW 正在等待 → 立即激活
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "activated") {
+              // 新 SW 激活後顯示提示（已由 SW postMessage 處理）
+            }
+          });
+        });
+      });
+
+      // 接收 SW 發送的「有新版本」訊息
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "SW_UPDATED") {
+          const banner = document.getElementById("update-banner");
+          if (banner) banner.hidden = false;
+        }
+      });
+    }
+
+    document.getElementById("update-reload-btn")?.addEventListener("click", () => {
+      window.location.reload();
+    });
+  </script>
 </body>
 </html>

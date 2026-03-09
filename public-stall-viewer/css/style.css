@@ -105,6 +105,29 @@ body {
   font-size: 0.85rem;
 }
 
+.update-banner {
+  background: #1a73e8;
+  color: #fff;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.update-banner[hidden] { display: none; }
+.update-banner button {
+  background: #fff;
+  color: #1a73e8;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ── Loading ── */
 .loading {
   display: flex;
@@ -285,12 +308,13 @@ body {
 .mc-vacant   { background: #f5f5f5; border-color: #e0e0e0; }
 .mc-card.mc-selected { box-shadow: 0 0 0 3px var(--primary); transform: translateY(-2px); }
 
-/* 類別背景色 */
-.mc-cat-food    { background: #fff3e0; border-color: #ff9800; }
-.mc-cat-clothes { background: #e8eaf6; border-color: #5c6bc0; }
-.mc-cat-daily   { background: #e8f5e9; border-color: #4caf50; }
-.mc-cat-fresh   { background: #f1f8e9; border-color: #8bc34a; }
-.mc-cat-other   { background: #f5f5f5; border-color: #9e9e9e; }
+/* 類別背景色 — 6 色高對比方案，互不相似 */
+.mc-cat-food    { background: #FFF3E0; border-color: #F57C00; } /* 橘紅 — 食品/餐飲 */
+.mc-cat-daily   { background: #E3F2FD; border-color: #1565C0; } /* 深藍 — 生活/百貨 */
+.mc-cat-clothes { background: #F3E5F5; border-color: #6A1B9A; } /* 紫色 — 服飾/織品 */
+.mc-cat-fresh   { background: #E0F2F1; border-color: #00796B; } /* 青綠 — 生鮮/農產 */
+.mc-cat-shoes   { background: #EFEBE9; border-color: #5D4037; } /* 棕色 — 鞋包/皮件 */
+.mc-cat-other   { background: #F5F5F5; border-color: #757575; } /* 灰色 — 其他 */
 
 /* 右上角類別角標 */
 .mc-badge {
@@ -308,11 +332,12 @@ body {
   justify-content: center;
   line-height: 1;
 }
-.mc-cat-food    .mc-badge { background: #ff9800; }
-.mc-cat-clothes .mc-badge { background: #5c6bc0; }
-.mc-cat-daily   .mc-badge { background: #4caf50; }
-.mc-cat-fresh   .mc-badge { background: #8bc34a; }
-.mc-cat-other   .mc-badge { background: #9e9e9e; }
+.mc-cat-food    .mc-badge { background: #F57C00; }
+.mc-cat-daily   .mc-badge { background: #1565C0; }
+.mc-cat-clothes .mc-badge { background: #6A1B9A; }
+.mc-cat-fresh   .mc-badge { background: #00796B; }
+.mc-cat-shoes   .mc-badge { background: #5D4037; }
+.mc-cat-other   .mc-badge { background: #757575; }
 
 /* 類別圖例 */
 .cat-legend {
