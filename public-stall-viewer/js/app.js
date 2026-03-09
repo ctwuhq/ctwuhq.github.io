@@ -243,6 +243,8 @@
                    data-booth-no="${i}"
                    data-vendor-no="${escapeHtml(r.vendor_no)}"
                    data-vendor-name="${escapeHtml(r.vendor_name)}"
+                   data-category="${escapeHtml(r.category || '')}"
+                   data-product="${escapeHtml(r.product || '')}"
                    style="border-left: 4px solid ${catColor};">
             <div class="booth-no">${i}號</div>
             <div class="booth-info">
@@ -428,10 +430,14 @@
     const boothNo = card.dataset.boothNo;
     const vendorNo = card.dataset.vendorNo;
     const vendorName = card.dataset.vendorName;
+    const cat = card.dataset.category;
+    const prod = card.dataset.product;
     const futureDates = getFutureSchedule(vendorNo, vendorName);
     detail.innerHTML = `
       <div class="detail-header">${boothNo}號攤位</div>
       <div class="detail-row"><span>攤商名稱</span><strong>${vendorName}</strong></div>
+      ${cat ? `<div class="detail-row"><span>類別</span><strong>${cat}</strong></div>` : ''}
+      ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${prod}</strong></div>` : ''}
       ${buildScheduleHtml(futureDates)}
     `;
     detail.hidden = false;
