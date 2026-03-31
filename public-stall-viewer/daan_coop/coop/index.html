@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>消費合作社攤商</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                   "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #2c5f8a;
+      color: #fff;
+      padding: 1.25rem 1rem;
+    }
+
+    header .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header a.back {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    header a.back:hover { color: #fff; text-decoration: underline; }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    .meta-bar {
+      font-size: 0.85rem;
+      color: #777;
+      margin-bottom: 1.25rem;
+      min-height: 1.2em;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      font-weight: 600;
+      font-size: 1rem;
+      white-space: nowrap;
+    }
+
+    .controls select {
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 0.5rem 2rem 0.5rem 0.75rem;
+      border: 2px solid #2c5f8a;
+      border-radius: 6px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232c5f8a' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      min-width: 160px;
+    }
+
+    .controls select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(44,95,138,0.25);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      background: #fff;
+      border: 1px solid #e0e6ed;
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background: #2c5f8a;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    thead th:first-child { border-radius: 9px 0 0 0; }
+    thead th:last-child  { border-radius: 0 9px 0 0; }
+
+    tbody tr:nth-child(even) { background: #f7f9fb; }
+
+    tbody td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid #edf0f3;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .empty-msg {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: #888;
+      font-size: 1rem;
+    }
+
+    .error-msg {
+      background: #fff3f3;
+      border: 1px solid #f5c6c6;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      color: #c0392b;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.25rem;
+      font-size: 0.82rem;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a class="back" href="../index.html">← 返回首頁</a>
+      <h1>🛒 消費合作社攤商</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="meta-bar" id="metaBar"></div>
+
+    <div class="controls" id="controls" style="display:none">
+      <label for="dateSelect">選擇日期：</label>
+      <select id="dateSelect"></select>
+    </div>
+
+    <div id="content">
+      <p class="empty-msg">資料載入中…</p>
+    </div>
+  </main>
+
+  <footer>資料由爬蟲自動更新，僅供參考</footer>
+
+  <script>
+    (function () {
+      const metaBar    = document.getElementById('metaBar');
+      const controls   = document.getElementById('controls');
+      const dateSelect = document.getElementById('dateSelect');
+      const content    = document.getElementById('content');
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function todayStr() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function bestDate(dates) {
+        const today = todayStr();
+        if (dates.includes(today)) return today;
+        const future = dates.filter(d => d >= today);
+        if (future.length) return future[0];
+        return dates[0];
+      }
+
+      function renderTable(records) {
+        if (!records || records.length === 0) {
+          content.innerHTML = '<p class="empty-msg">本日無攤商資料</p>';
+          return;
+        }
+        const rows = records.map(r => `
+          <tr>
+            <td>${escHtml(r.stall || '')}</td>
+            <td>${escHtml(r.vendor || '')}</td>
+            <td>${escHtml(r.notes || '')}</td>
+          </tr>`).join('');
+        content.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>攤位位置</th>
+                  <th>攤商名稱</th>
+                  <th>備註</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+      }
+
+      function init(data) {
+        if (data.updated_at) {
+          metaBar.textContent = '資料更新時間：' + data.updated_at;
+        }
+
+        const records = data.records || [];
+        const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))].sort();
+
+        if (dateSet.length === 0) {
+          content.innerHTML = '<p class="empty-msg">目前無資料</p>';
+          return;
+        }
+
+        controls.style.display = 'flex';
+        dateSet.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          dateSelect.appendChild(opt);
+        });
+
+        const selected = bestDate(dateSet);
+        dateSelect.value = selected;
+
+        function update() {
+          const day = dateSelect.value;
+          renderTable(records.filter(r => r.date === day));
+        }
+
+        dateSelect.addEventListener('change', update);
+        update();
+      }
+
+      fetch('./data.json')
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(init)
+        .catch(err => {
+          metaBar.textContent = '';
+          content.innerHTML = `<p class="error-msg">無法載入資料（${escHtml(err.message)}）。請確認 data.json 是否已產生。</p>`;
+        });
+    })();
+  </script>
+</body>
+</html>
