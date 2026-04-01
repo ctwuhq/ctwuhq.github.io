@@ -155,9 +155,41 @@
       font-size: 0.82rem;
       color: #999;
     }
+
+    .update-banner {
+      background: #fff8e1;
+      border-bottom: 2px solid #f9a825;
+      padding: 0.6rem 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #6d4c00;
+    }
+
+    .update-banner button {
+      background: #f9a825;
+      border: none;
+      border-radius: 4px;
+      padding: 0.2rem 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+  </script>
 </head>
 <body>
+  <div id="updateBanner" class="update-banner" style="display:none">
+    ✨ 有新資料可用<button onclick="location.reload()">點擊更新</button>
+  </div>
   <header>
     <div class="header-inner">
       <a class="back" href="../index.html">← 返回首頁</a>
@@ -203,12 +235,19 @@
         return `${y}-${m}-${day}`;
       }
 
+      // 將 YYYY/M/D 或 YYYY-MM-DD 等格式統一正規化為 YYYY-MM-DD，方便比較
+      function normalizeDate(str) {
+        const parts = str.split(/[-\/]/);
+        return `${parts[0]}-${String(+parts[1]).padStart(2, '0')}-${String(+parts[2]).padStart(2, '0')}`;
+      }
+
       function bestDate(dates) {
         const today = todayStr();
-        if (dates.includes(today)) return today;
-        const future = dates.filter(d => d >= today);
-        if (future.length) return future[0];
-        return dates[0];
+        const norm = dates.map(normalizeDate);
+        const exact = norm.indexOf(today);
+        if (exact !== -1) return dates[exact];
+        const future = norm.map((d, i) => ({ d, i })).filter(x => x.d >= today);
+        return future.length ? dates[future[0].i] : dates[0];
       }
 
       function renderTable(records) {
@@ -270,12 +309,35 @@
         update();
       }
 
-      fetch('./data.json')
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
+      let currentUpdatedAt = null;
+      const POLL_INTERVAL = 60 * 60 * 1000; // 每 60 分鐘輪詢一次
+
+      function loadData() {
+        return fetch(`./data.json?_=${Date.now()}`, { cache: 'no-cache' })
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          });
+      }
+
+      function startPolling() {
+        setInterval(() => {
+          loadData()
+            .then(data => {
+              if (currentUpdatedAt && data.updated_at && data.updated_at !== currentUpdatedAt) {
+                document.getElementById('updateBanner').style.display = 'block';
+              }
+            })
+            .catch(() => {});
+        }, POLL_INTERVAL);
+      }
+
+      loadData()
+        .then(data => {
+          currentUpdatedAt = data.updated_at || null;
+          init(data);
+          startPolling();
         })
-        .then(init)
         .catch(err => {
           metaBar.textContent = '';
           content.innerHTML = `<p class="error-msg">無法載入資料（${escHtml(err.message)}）。請確認 data.json 是否已產生。</p>`;
