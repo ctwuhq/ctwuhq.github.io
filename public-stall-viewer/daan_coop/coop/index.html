@@ -57,7 +57,6 @@
     .meta-bar {
       font-size: 0.85rem;
       color: #777;
-      margin-bottom: 1.25rem;
       min-height: 1.2em;
     }
 
@@ -198,8 +197,6 @@
   </header>
 
   <main>
-    <div class="meta-bar" id="metaBar"></div>
-
     <div class="controls" id="controls" style="display:none">
       <label for="dateSelect">選擇日期：</label>
       <select id="dateSelect"></select>
@@ -210,7 +207,10 @@
     </div>
   </main>
 
-  <footer>資料由爬蟲自動更新，僅供參考</footer>
+  <footer>
+    <div>資料由爬蟲自動更新，僅供參考</div>
+    <div class="meta-bar" id="metaBar"></div>
+  </footer>
 
   <script>
     (function () {
@@ -278,10 +278,10 @@
 
       function init(data) {
         if (data.updated_at) {
-          metaBar.textContent = '資料更新時間：' + data.updated_at;
+          metaBar.textContent = '資料抓取時間：' + data.updated_at;
         }
 
-        const records = data.records || [];
+        const records = (data.sheets || []).flatMap(s => s.records || []);
         const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))].sort();
 
         if (dateSet.length === 0) {
