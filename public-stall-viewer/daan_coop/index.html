@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>攤商擺攤查詢</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                   "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #2c7a4b;
+      color: #fff;
+      padding: 2rem 1rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      opacity: 0.85;
+      font-size: 1rem;
+    }
+
+    main {
+      flex: 1;
+      max-width: 860px;
+      width: 100%;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e0e6ed;
+      border-radius: 10px;
+      padding: 1.75rem 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.2s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+      transform: translateY(-3px);
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #2c7a4b;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .card-arrow {
+      margin-top: auto;
+      padding-top: 1rem;
+      font-size: 0.9rem;
+      color: #2c7a4b;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.82rem;
+      color: #999;
+    }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+  </script>
+</head>
+<body>
+  <header>
+    <h1>攤商擺攤查詢</h1>
+    <p>查詢各地點攤商擺攤時間與品項資訊</p>
+  </header>
+
+  <main>
+    <div class="cards">
+      <a class="card" href="../">
+        <div class="card-icon">🏢</div>
+        <h2>總公司B1攤商</h2>
+        <p>總公司 B1 攤商排程資料，包含攤位位置、攤商名稱及販售商品資訊。</p>
+        <div class="card-arrow">查看資料 →</div>
+      </a>
+      <a class="card" href="./daan/">
+        <div class="card-icon">🌳</div>
+        <h2>大安園區攤商</h2>
+        <p>大安園區週邊攤商資料，包含攤位編號、攤商名稱及販售商品簡述。</p>
+        <div class="card-arrow">查看資料 →</div>
+      </a>
+      <a class="card" href="./coop/">
+        <div class="card-icon">🛒</div>
+        <h2>消費合作社攤商</h2>
+        <p>消費合作社攤商排程資料，包含攤位位置、攤商名稱及備註說明。</p>
+        <div class="card-arrow">查看資料 →</div>
+      </a>
+    </div>
+  </main>
+
+  <footer>資料由爬蟲自動更新，僅供參考</footer>
+</body>
+</html>
