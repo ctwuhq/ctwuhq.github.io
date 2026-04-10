@@ -324,9 +324,9 @@
     // 電梯標籤 (col 3-5, row 1 — 不含攤位9那欄)
     html += `<div class="lm lm-elevator" style="grid-column:3/6;grid-row:1;">🛗 電梯</div>`;
     // 餐廳 (col 6, row 2-4，與攤位 1-7 同高)
-    html += `<div class="lm lm-side" style="grid-column:6;grid-row:2/5;">餐廳</div>`;
+    html += `<div class="lm lm-side" style="grid-column:6;grid-row:2/5;">🍽️ 餐廳</div>`;
     // 7-11 (col 1, row 2-4，與攤位 9 同高，位於攤位 9 左側)
-    html += `<div class="lm lm-side" style="grid-column:1;grid-row:2/5;">7-11</div>`;
+    html += `<div class="lm lm-side" style="grid-column:1;grid-row:2/5;">🏪 販賣部(7-11)</div>`;
     // 喜憨兒 (col 1-2, row 9 — 跨兩欄，與攤位9同欄)
     html += `<div class="lm lm-side" style="grid-column:1/3;grid-row:9;">喜憨兒</div>`;
     // 樓梯（col 6, row 9 — 13號攤位右下角）
@@ -350,7 +350,7 @@
         ? `<div class="mc-badge">${catInfo.abbr}</div>`
         : '';
       const rowStyle = rowEnd
-        ? `grid-column:${col};grid-row:${rowStart}/${rowEnd};`
+        ? `grid-column:${col};grid-row:${rowStart}/${rowEnd};${no === 9 ? 'margin-bottom:78px;' : ''}`
         : `grid-column:${col};grid-row:${rowStart};`;
 
       html += `
