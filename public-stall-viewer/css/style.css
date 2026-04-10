@@ -275,12 +275,38 @@ body {
   width: 100%;
 }
 
+/* 外牆容器 */
+.floor-plan-wrapper {
+  background: #f4f1eb;
+  border: 3px solid #8a8278;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
 .floor-grid {
   display: grid;
-  grid-template-columns: 52px 1fr 1fr 1fr 52px;
-  grid-template-rows: 44px repeat(4, minmax(90px, auto));
-  gap: 8px;
-  margin-bottom: 16px;
+  /* col1=外部標籤(7-11/喜憨兒), col2=攤位9欄, col3~5=主攤位, col6=右側地標 */
+  grid-template-columns: 44px 60px 1fr 1fr 1fr 52px;
+  /* row1=電梯, row2=攤位列A, row3=步行走廊, row4=攤位列B,
+     row5=實體牆, row6=攤位列C, row7=步行走廊, row8=攤位列D, row9=底部 */
+  grid-template-rows: 44px 90px 16px 90px 14px 90px 16px 90px 44px;
+  gap: 6px;
+}
+
+/* 橫向實體牆分隔線 */
+.wall-h {
+  grid-column: 1 / 7;
+  background: #8a8278;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #f4f1eb;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 /* 地標 */
@@ -370,7 +396,13 @@ body {
 .mc-tag  { font-size: 0.6rem; color: #888; background: #fff; padding: 1px 5px; border-radius: 999px; border: 1px solid #ddd; line-height: 1.2; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* 地圖詳情 */
-.map-detail {
+.map-disclaimer {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #aaa;
+  margin: -4px 0 10px;
+  letter-spacing: 0.02em;
+}
   background: var(--card-bg);
   border-radius: 10px;
   padding: 14px 16px;
@@ -560,9 +592,9 @@ body {
   .booth-card { margin-bottom: 10px; }
   .booth-no { width: 72px; min-width: 72px; font-size: 1.25rem; }
   .floor-grid {
-    grid-template-columns: 68px 1fr 1fr 1fr 68px;
-    grid-template-rows: 52px repeat(4, minmax(100px, auto));
-    gap: 10px;
+    grid-template-columns: 50px 72px 1fr 1fr 1fr 60px;
+    grid-template-rows: 52px 100px 18px 100px 16px 100px 18px 100px 52px;
+    gap: 8px;
   }
   .mc-no { font-size: 1.3rem; }
   .mc-name { font-size: 0.85rem; }
@@ -578,8 +610,8 @@ body {
 
   .booth-map { padding: 8px; }
   .floor-grid {
-    grid-template-columns: 40px 1fr 1fr 1fr 40px;
-    grid-template-rows: 38px repeat(4, minmax(85px, auto));
+    grid-template-columns: 32px 44px 1fr 1fr 1fr 40px;
+    grid-template-rows: 38px 82px 14px 82px 12px 82px 14px 82px 38px;
     gap: 5px;
   }
   .lm { font-size: 0.65rem; }

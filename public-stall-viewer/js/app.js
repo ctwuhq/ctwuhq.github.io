@@ -276,25 +276,27 @@
   }
 
   // ── Map rendering ──
-  // 每個格子: [boothNo, gridCol, gridRow]  (null = 地標)
-  // Grid: 5 cols × 5 rows
-  // Col 1=left-landmark, Col 2-4=booths, Col 5=right-landmark
-  // Row 1=elevator, Row 2-5=booth rows
+  // 格子: [boothNo, gridCol, gridRowStart, gridRowEnd(可選)]
+  // Grid: 6 cols × 9 rows
+  // Col 1=外部左標籤(7-11/喜憨兒), Col 2=攤位9欄, Col 3-5=主攤位, Col 6=右側地標(餐廳)
+  // Row 1=電梯, Row 2=攤位列A, Row 3=步行走廊,
+  // Row 4=攤位列B, Row 5=實體牆, Row 6=攤位列C,
+  // Row 7=步行走廊, Row 8=攤位列D, Row 9=底部地標
   const FLOOR_LAYOUT = [
-    // 攤位號, grid-column (1-5), grid-row (1-5)
-    [9,  1, 2],
-    [3,  2, 2],
-    [2,  3, 2],
-    [1,  4, 2],
-    [7,  2, 3],
-    [6,  3, 3],
-    [5,  4, 3],
-    [12, 2, 4],
-    [10, 3, 4],
-    [11, 4, 4],
-    [8,  2, 5],
-    [4,  3, 5],
-    [13, 4, 5],
+    // [攤位號, grid-column, grid-row-start, grid-row-end(不含)]
+    [9,  2, 2, 5],   // 攤位9跨 row2~4（高瘦垂直攤位）
+    [3,  3, 2],
+    [2,  4, 2],
+    [1,  5, 2],
+    [7,  3, 4],
+    [6,  4, 4],
+    [5,  5, 4],
+    [12, 3, 6],
+    [10, 4, 6],
+    [11, 5, 6],
+    [8,  3, 8],
+    [4,  4, 8],
+    [13, 5, 8],
   ];
 
   // 類別 → { CSS class, 角標字, 圖例顏色 }
@@ -316,19 +318,25 @@
     const boothMap = {};
     dayRows.forEach(r => { boothMap[r.booth_no] = r; });
 
-    let html = `<div class="floor-grid">`;
+    // 外牆 wrapper 包住整個 floor-grid
+    let html = `<div class="floor-plan-wrapper"><div class="floor-grid">`;
 
-    // 電梯標籤 (col 2-4, row 1)
-    html += `<div class="lm lm-elevator" style="grid-column:2/5;grid-row:1;">🛗 電梯</div>`;
-    // 餐廳 (col 5, row 2-3)
-    html += `<div class="lm lm-side" style="grid-column:5;grid-row:2/4;">餐廳</div>`;
-    // 7-11 (col 1, row 3)
-    html += `<div class="lm lm-side" style="grid-column:1;grid-row:3;">7-11</div>`;
-    // 喜憨兒 (col 1, row 5)
-    html += `<div class="lm lm-side" style="grid-column:1;grid-row:5;">喜憨兒</div>`;
+    // 電梯標籤 (col 3-5, row 1 — 不含攤位9那欄)
+    html += `<div class="lm lm-elevator" style="grid-column:3/6;grid-row:1;">🛗 電梯</div>`;
+    // 餐廳 (col 6, row 2-4，與攤位 1-7 同高)
+    html += `<div class="lm lm-side" style="grid-column:6;grid-row:2/5;">餐廳</div>`;
+    // 7-11 (col 1, row 2-4，與攤位 9 同高，位於攤位 9 左側)
+    html += `<div class="lm lm-side" style="grid-column:1;grid-row:2/5;">7-11</div>`;
+    // 喜憨兒 (col 1-2, row 9 — 跨兩欄，與攤位9同欄)
+    html += `<div class="lm lm-side" style="grid-column:1/3;grid-row:9;">喜憨兒</div>`;
+    // 樓梯（col 6, row 9 — 13號攤位右下角）
+    html += `<div class="lm lm-side" style="grid-column:6;grid-row:9;">🪜 樓梯</div>`;
+
+    // 橫向實體牆（row 5，全欄）
+    html += `<div class="wall-h" style="grid-row:5;"></div>`;
 
     // 攤位卡片
-    FLOOR_LAYOUT.forEach(([no, col, row]) => {
+    FLOOR_LAYOUT.forEach(([no, col, rowStart, rowEnd]) => {
       const r = boothMap[no];
       const occupied = r && r.vendor_no;
       const catInfo = occupied && r.category ? getCat(r.category) : null;
@@ -341,9 +349,12 @@
       const badgeHtml = catInfo
         ? `<div class="mc-badge">${catInfo.abbr}</div>`
         : '';
+      const rowStyle = rowEnd
+        ? `grid-column:${col};grid-row:${rowStart}/${rowEnd};`
+        : `grid-column:${col};grid-row:${rowStart};`;
 
       html += `
-        <div class="${cls}" style="grid-column:${col};grid-row:${row};"
+        <div class="${cls}" style="${rowStyle}"
              onclick="mapClick(event,${no})"
              data-no="${no}" data-name="${escapeHtml(occupied ? r.vendor_name : "")}"
              data-vendor-no="${escapeHtml(occupied ? r.vendor_no : "")}"
@@ -370,7 +381,8 @@
         <span class="cat-legend-dot" style="background:${color};"></span>${label}
        </span>`
     ).join('');
-    html += `</div>
+    html += `</div></div>
+    <p class="map-disclaimer">本圖為示意性質，空間比例及位置僅供參考</p>
     <div class="cat-legend">${legendItems}</div>
     <div id="map-detail" class="map-detail" hidden></div>`;
 
