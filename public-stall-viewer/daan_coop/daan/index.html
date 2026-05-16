@@ -282,7 +282,8 @@
         }
 
         const records = data.records || [];
-        const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))].sort();
+        const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))]
+          .sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
 
         if (dateSet.length === 0) {
           content.innerHTML = '<p class="empty-msg">目前無資料</p>';
