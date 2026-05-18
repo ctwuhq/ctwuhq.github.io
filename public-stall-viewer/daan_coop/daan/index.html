@@ -191,7 +191,7 @@
   </div>
   <header>
     <div class="header-inner">
-      <!-- <a class="back" href="../index.html">← 返回首頁</a> -->
+      <a class="back" href="../index.html">← 返回首頁</a>
       <h1>🌳 大安園區攤商</h1>
     </div>
   </header>
@@ -282,8 +282,7 @@
         }
 
         const records = data.records || [];
-        const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))]
-          .sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
+        const dateSet = [...new Set(records.map(r => r.date).filter(Boolean))].sort();
 
         if (dateSet.length === 0) {
           content.innerHTML = '<p class="empty-msg">目前無資料</p>';
