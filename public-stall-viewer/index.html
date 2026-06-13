@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-4Y1K5TMT9J');
-  </script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a73e8">
   <title>B1攤位每日公告</title>
+  <script src="js/config.js"></script>
+  <script>
+    // Google Analytics — 動態載入，由 config.js 的 GA_ID 決定
+    if (typeof CONFIG !== "undefined" && CONFIG.GA_ID) {
+      var _s = document.createElement("script");
+      _s.async = true;
+      _s.src = "https://www.googletagmanager.com/gtag/js?id=" + CONFIG.GA_ID;
+      document.head.appendChild(_s);
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", CONFIG.GA_ID);
+    }
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico">
@@ -30,8 +35,8 @@
     </nav>
     <div id="updated-time" class="updated-time"></div>
     <div class="view-tabs">
-      <button id="tab-list"   class="tab-btn active" aria-pressed="true">☰ 列表</button>
-      <button id="tab-map"    class="tab-btn"        aria-pressed="false">🗺 地圖</button>
+      <button id="tab-map"    class="tab-btn active" aria-pressed="true">🗺 地圖</button>
+      <button id="tab-list"   class="tab-btn"        aria-pressed="false">☰ 列表</button>
       <button id="tab-search" class="tab-btn"        aria-pressed="false">🔍 搜尋</button>
     </div>
   </header>
@@ -48,11 +53,10 @@
     <div class="spinner" role="status"><span class="sr-only"></span></div>
   </div>
 
-  <main id="booth-list"   class="booth-list"   aria-label="攤位列表"></main>
-  <main id="booth-map"    class="booth-map"    aria-label="攤位地圖" hidden></main>
+  <main id="booth-list"   class="booth-list"   aria-label="攤位列表" hidden></main>
+  <main id="booth-map"    class="booth-map"    aria-label="攤位地圖"></main>
   <main id="booth-search" class="booth-search" aria-label="廠商搜尋" hidden></main>
 
-  <script src="js/config.js"></script>
   <script src="js/app.js"></script>
   <script>
     // Service Worker 註冊與更新通知

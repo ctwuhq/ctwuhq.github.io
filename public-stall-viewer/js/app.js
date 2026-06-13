@@ -9,10 +9,15 @@
   let currentIndex = -1;
   let lastUpdated = "";
   let isOffline = false;
-  let viewMode = "list"; // "list" | "map"
+  let viewMode = "map"; // "list" | "map"
+  let mapZone = "stall"; // "stall" | "restaurant" | "shop"
   let showEmpty = true;    // 顯示空位
   let activeCat  = null;   // 類別篩選（null = 全部）
+  let activeMapCat = null; // 地圖類別篩選（null = 全部）
+  let pendingMapBoothNo = null; // 從搜尋跳轉後自動選取攤位
   let _cachedDayRows = []; // 供篩選重繪使用
+  let restaurantLayout = [];
+  let shopLayout = [];
 
   // ── DOM refs ──
   const $date = document.getElementById("current-date");
@@ -39,6 +44,8 @@
   $tabMap.addEventListener("click", () => switchView("map"));
   $tabSearch.addEventListener("click", () => switchView("search"));
   $boothList.addEventListener("click", handleListClick);
+  $boothMap.addEventListener("click", handleMapContainerClick);
+  $boothSearch.addEventListener("click", handleSearchClick);
 
   async function init() {
     if (!navigator.onLine) isOffline = true;
@@ -70,9 +77,21 @@
   async function fetchData() {
     showLoading(true);
     try {
-      const [rows, log] = await Promise.all([fetchSheet(), fetchLog()]);
-      allRows = parseRows(rows);
-      lastUpdated = parseLog(log);
+      if (CONFIG.DATA_SOURCE === "json") {
+        // Cloudflare Pages 模式：讀取本地 data.json
+        const res = await fetch("./data.json");
+        if (!res.ok) throw new Error(`data.json ${res.status}`);
+        const json = await res.json();
+        allRows = (json.rows || []).filter(r => r.date && r.booth_no);
+        lastUpdated = json.updated_at || "";
+        applyMapData(json.maps || {});
+      } else {
+        // GitHub Pages 模式：Google Sheets API
+        const [rows, log] = await Promise.all([fetchSheet(), fetchLog()]);
+        allRows = parseRows(rows);
+        lastUpdated = parseLog(log);
+        applyMapData({});
+      }
       const _today = new Date().toISOString().slice(0, 10);
       availableDates = [...new Set(allRows.map(r => r.date))].sort().filter(d => d >= _today);
       jumpToToday();
@@ -120,6 +139,36 @@
     return last[0] || "";
   }
 
+  function normalizeRestaurantLayout(items) {
+    const source = Array.isArray(items) && items.length ? items : DEFAULT_RESTAURANT_LAYOUT;
+    return source
+      .map((r) => ({
+        no: Number(r.no) || 0,
+        zone: r.zone || r.zone_code || "",
+        name: r.name || "",
+        row: Number(r.row) || 1,
+      }))
+      .filter((r) => r.no > 0);
+  }
+
+  function normalizeShopLayout(items) {
+    const source = Array.isArray(items) && items.length ? items : DEFAULT_SHOP_LAYOUT;
+    return source
+      .map((s) => ({
+        slotKey: s.slotKey || s.slot_key || "",
+        code: s.code || "",
+        name: s.name || "",
+        sortOrder: Number(s.sortOrder || s.sort_order || 0),
+        isActive: s.isActive !== false && s.is_active !== false,
+      }))
+      .filter((s) => s.slotKey && s.code);
+  }
+
+  function applyMapData(maps) {
+    restaurantLayout = normalizeRestaurantLayout(maps && maps.restaurants);
+    shopLayout = normalizeShopLayout(maps && maps.shops);
+  }
+
   // ── Navigation ──
   function jumpToToday() {
     const today = new Date().toISOString().slice(0, 10);
@@ -157,8 +206,8 @@
     }
     const items = futureDates.map(r =>
       `<div class="sched-item">
-         <span class="sched-date">${r.date.replace(/-/g, '/')} (${r.weekday})</span>
-         <span class="sched-booth">${r.booth_no}號</span>
+         <span class="sched-date">${escapeHtml(r.date.replace(/-/g, '/'))} (${escapeHtml(r.weekday)})</span>
+         <span class="sched-booth">${escapeHtml(String(r.booth_no))}號</span>
        </div>`
     ).join('');
     return `<div class="detail-schedule"><div class="sched-title">${title}</div>${items}</div>`;
@@ -171,7 +220,14 @@
       $badge.textContent = "";
       $updated.textContent = "";
       $boothList.innerHTML = '<p class="empty-msg">目前沒有已發布的攤位資料。</p>';
-      $boothMap.innerHTML = "";
+      if (!$boothSearch.innerHTML) {
+        $boothSearch.innerHTML = '<p class="empty-msg">目前沒有已發布的攤位資料。</p>';
+      }
+      if (viewMode === "map") {
+        renderMap([]);
+      } else {
+        $boothMap.innerHTML = "";
+      }
       updateNavButtons();
       return;
     }
@@ -276,28 +332,68 @@
   }
 
   // ── Map rendering ──
-  // 格子: [boothNo, gridCol, gridRowStart, gridRowEnd(可選)]
-  // Grid: 6 cols × 9 rows
-  // Col 1=外部左標籤(7-11/喜憨兒), Col 2=攤位9欄, Col 3-5=主攤位, Col 6=右側地標(餐廳)
-  // Row 1=電梯, Row 2=攤位列A, Row 3=步行走廊,
-  // Row 4=攤位列B, Row 5=實體牆, Row 6=攤位列C,
-  // Row 7=步行走廊, Row 8=攤位列D, Row 9=底部地標
+  // 北向朝上後的格子配置
+  // Grid: 9 cols × 6 rows
+  // Col 1=電梯, Col 2/4/6/8=攤位列, Col 3/7=走道, Col 5=實體牆, Col 9=右側地標
+  // Row 1=北側地標, Row 2-4=主攤位區, Row 5=9號攤位/南側地標, Row 6=最南側地標
   const FLOOR_LAYOUT = [
-    // [攤位號, grid-column, grid-row-start, grid-row-end(不含)]
-    [9,  2, 2, 5],   // 攤位9跨 row2~4（高瘦垂直攤位）
-    [3,  3, 2],
-    [2,  4, 2],
-    [1,  5, 2],
-    [7,  3, 4],
-    [6,  4, 4],
-    [5,  5, 4],
-    [12, 3, 6],
-    [10, 4, 6],
-    [11, 5, 6],
-    [8,  3, 8],
-    [4,  4, 8],
-    [13, 5, 8],
+    { no: 1,  colStart: 2, rowStart: 2 },
+    { no: 2,  colStart: 2, rowStart: 3 },
+    { no: 3,  colStart: 2, rowStart: 4 },
+    { no: 4,  colStart: 8, rowStart: 3 },
+    { no: 5,  colStart: 4, rowStart: 2 },
+    { no: 6,  colStart: 4, rowStart: 3 },
+    { no: 7,  colStart: 4, rowStart: 4 },
+    { no: 8,  colStart: 8, rowStart: 4 },
+    { no: 9,  colStart: 2, rowStart: 5 },
+    { no: 10, colStart: 6, rowStart: 3 },
+    { no: 11, colStart: 6, rowStart: 2 },
+    { no: 12, colStart: 6, rowStart: 4 },
+    { no: 13, colStart: 8, rowStart: 2 },
   ];
+
+  // ── 餐廳配置 ──
+  // Grid: 6 cols × 3 rows (row1=上排, row2=走道, row3=下排)
+  const DEFAULT_RESTAURANT_LAYOUT = [
+    // 上排（左→右）
+    { no: 1,  zone: "A", name: "大福慧印素食",          col: 1, row: 1 },
+    { no: 2,  zone: "B", name: "津辣小吃",              col: 2, row: 1 },
+    { no: 3,  zone: "C", name: "外婆家",                col: 3, row: 1 },
+    { no: 4,  zone: "D", name: "地中海私房料理備品區",   col: 4, row: 1 },
+    { no: 5,  zone: "E", name: "豐味食堂",              col: 5, row: 1 },
+    { no: 6,  zone: "F", name: "啟運美食",              col: 6, row: 1 },
+    // 下排（左→右）
+    { no: 12, zone: "L", name: "地中海私房料理",         col: 1, row: 3 },
+    { no: 11, zone: "K", name: "壹元大餛飩",            col: 2, row: 3 },
+    { no: 10, zone: "J", name: "以琳美食",              col: 3, row: 3 },
+    { no: 9,  zone: "I", name: "鍋饌火鍋",              col: 4, row: 3 },
+    { no: 8,  zone: "H", name: "肉羹阿姨",              col: 5, row: 3 },
+    { no: 7,  zone: "G", name: "幸福咖啡",              col: 6, row: 3 },
+  ];
+
+  const DEFAULT_SHOP_LAYOUT = [
+    { slotKey: "top_5", code: "5", name: "", sortOrder: 10 },
+    { slotKey: "top_4", code: "4", name: "嘿啾咖啡(好食飲料店)", sortOrder: 20 },
+    { slotKey: "top_3", code: "3", name: "錦秀工作室", sortOrder: 30 },
+    { slotKey: "top_2", code: "2", name: "", sortOrder: 40 },
+    { slotKey: "top_1", code: "1", name: "姿樺的店", sortOrder: 50 },
+    { slotKey: "left_5_1", code: "5-1", name: "姿樺的店", sortOrder: 60 },
+    { slotKey: "left_6", code: "6", name: "戴利百貨", sortOrder: 70 },
+    { slotKey: "center_711", code: "7-11", name: "", sortOrder: 80 },
+  ];
+
+  const SHOP_SLOT_STYLES = {
+    top_1: "grid-column:1;grid-row:1;",
+    top_2: "grid-column:1;grid-row:2;",
+    top_3: "grid-column:1;grid-row:3;",
+    top_4: "grid-column:1;grid-row:4;",
+    top_5: "grid-column:1;grid-row:5;",
+    left_5_1: "grid-column:2;grid-row:5;",
+    left_6: "grid-column:3;grid-row:5;",
+    center_711: "grid-column:2/4;grid-row:1/5;",
+  };
+
+  applyMapData({});
 
   // 類別 → { CSS class, 角標字, 圖例顏色 }
   // 前 5 大類別各有專屬顏色；珠寶/飾品 與 服飾/織品 合併同色
@@ -314,47 +410,107 @@
     return CAT_MAP[cat] || { cls: 'mc-cat-other', abbr: '他', color: '#757575' };
   }
 
+  const MAP_FILTERS = [
+    { key: '食品/餐飲', label: '食品/餐飲', color: '#F57C00', categories: ['食品/餐飲'] },
+    { key: '生活/百貨', label: '生活/百貨', color: '#1565C0', categories: ['生活/百貨'] },
+    { key: '服飾飾品', label: '服飾‧飾品', color: '#6A1B9A', categories: ['服飾/織品', '珠寶/飾品'] },
+    { key: '生鮮/農產', label: '生鮮/農產', color: '#00796B', categories: ['生鮮/農產'] },
+    { key: '鞋包/皮件', label: '鞋包/皮件', color: '#5D4037', categories: ['鞋包/皮件'] },
+    { key: '__other', label: '其他', color: '#757575', categories: [] },
+  ];
+
+  function getMapFilterKey(cat) {
+    const filter = MAP_FILTERS.find(item => item.categories.includes(cat));
+    return filter ? filter.key : '__other';
+  }
+
+  function buildZoneSwitcher() {
+    const zones = [
+      { key: 'stall', label: '臨攤區' },
+      { key: 'restaurant', label: '餐廳區' },
+      { key: 'shop', label: '販賣部' },
+    ];
+    const buttons = zones.map(({ key, label }) => `
+      <button type="button"
+              class="zone-btn${mapZone === key ? ' active' : ''}"
+              data-zone-target="${key}"
+              aria-pressed="${mapZone === key}">
+        ${label}
+      </button>
+    `).join('');
+    return `<div class="zone-switcher" role="group" aria-label="地圖區域切換">${buttons}</div>`;
+  }
+
   function renderMap(dayRows) {
+    let html = buildZoneSwitcher();
+    if (mapZone === "restaurant") {
+      html += renderRestaurantMap();
+    } else if (mapZone === "shop") {
+      html += renderShopMap();
+    } else {
+      html += renderStallMap(dayRows);
+    }
+
+    html += `<div id="map-detail" class="map-detail" hidden></div>`;
+    $boothMap.innerHTML = html;
+
+    if (mapZone === "stall" && pendingMapBoothNo) {
+      const card = $boothMap.querySelector(`.mc-card[data-no="${pendingMapBoothNo}"]`);
+      if (card) selectStallCard(card, pendingMapBoothNo, true);
+      pendingMapBoothNo = null;
+    }
+  }
+
+  window.switchZone = function(zone) {
+    mapZone = zone;
+    pendingMapBoothNo = null;
+    render();
+  };
+
+  function renderStallMap(dayRows) {
     const boothMap = {};
     dayRows.forEach(r => { boothMap[r.booth_no] = r; });
+    const legendCounts = buildMapLegendCounts(dayRows);
 
     // 外牆 wrapper 包住整個 floor-grid
-    let html = `<div class="floor-plan-wrapper"><div class="floor-grid">`;
+    let html = `<div class="floor-plan-wrapper"><div class="north-indicator" aria-hidden="true">北 ↑</div><div class="floor-grid">`;
 
-    // 電梯標籤 (col 3-5, row 1 — 不含攤位9那欄)
-    html += `<div class="lm lm-elevator" style="grid-column:3/6;grid-row:1;">🛗 電梯</div>`;
-    // 餐廳 (col 6, row 2-4，與攤位 1-7 同高)
-    html += `<div class="lm lm-side" style="grid-column:6;grid-row:2/5;">🍽️ 餐廳</div>`;
-    // 7-11 (col 1, row 2-4，與攤位 9 同高，位於攤位 9 左側)
-    html += `<div class="lm lm-side" style="grid-column:1;grid-row:2/5;">🏪 販賣部(7-11)</div>`;
-    // 喜憨兒 (col 1-2, row 9 — 跨兩欄，與攤位9同欄)
-    html += `<div class="lm lm-side" style="grid-column:1/3;grid-row:9;">喜憨兒</div>`;
-    // 樓梯（col 6, row 9 — 13號攤位右下角）
-    html += `<div class="lm lm-side" style="grid-column:6;grid-row:9;">🪜 樓梯</div>`;
+    // 電梯（西側）
+    html += `<div class="lm lm-elevator" style="grid-column:1;grid-row:2/5;"><span class="lm-icon">🛗</span><span>電梯</span></div>`;
+    // 餐廳（北側）
+    html += `<div class="lm lm-restaurant" style="grid-column:2/5;grid-row:1;" onclick="switchZone('restaurant')" title="切換至餐廳區"><span class="restaurant-badge">🍽️</span><span class="restaurant-label">餐廳區</span></div>`;
+    // 7-11（南側）
+    html += `<div class="lm lm-seven" style="grid-column:2/5;grid-row:6;" onclick="switchZone('shop')" title="切換至販賣部"><span class="seven-badge"><span class="n7">7</span><span class="dash">-</span><span class="n11">11</span></span><span class="seven-label">販賣部</span></div>`;
+    // 喜憨兒（東南側）
+    html += `<div class="lm lm-xhn" style="grid-column:8/10;grid-row:6;">🌻 喜憨兒</div>`;
+    // 樓梯（東北角）
+    html += `<div class="lm lm-stairs" style="grid-column:9;grid-row:1;">🪜 樓梯</div>`;
 
-    // 橫向實體牆（row 5，全欄）
-    html += `<div class="wall-h" style="grid-row:5;"></div>`;
+    // 北向朝上後，實體牆改為縱向
+    html += `<div class="wall-h" style="grid-column:5;grid-row:1/7;"></div>`;
 
     // 攤位卡片
-    FLOOR_LAYOUT.forEach(([no, col, rowStart, rowEnd]) => {
+    FLOOR_LAYOUT.forEach(({ no, colStart, rowStart, colEnd, rowEnd }) => {
       const r = boothMap[no];
       const occupied = r && r.vendor_no;
       const catInfo = occupied && r.category ? getCat(r.category) : null;
+      const mapFilterKey = occupied ? getMapFilterKey(r.category) : '';
+      const filterCls = activeMapCat
+        ? (occupied && mapFilterKey === activeMapCat ? ' mc-highlight' : ' mc-dimmed')
+        : '';
       const cls = occupied
-        ? `mc-card mc-occupied${catInfo ? ' ' + catInfo.cls : ''}`
-        : 'mc-card mc-vacant';
+        ? `mc-card mc-occupied${catInfo ? ' ' + catInfo.cls : ''}${filterCls}`
+        : `mc-card mc-vacant${filterCls}`;
       const vendorHtml = occupied
         ? `<div class="mc-name">${escapeHtml(r.vendor_name)}</div>`
         : `<div class="mc-name mc-empty-text">空位</div>`;
       const badgeHtml = catInfo
         ? `<div class="mc-badge">${catInfo.abbr}</div>`
         : '';
-      const rowStyle = rowEnd
-        ? `grid-column:${col};grid-row:${rowStart}/${rowEnd};${no === 9 ? 'margin-bottom:78px;' : ''}`
-        : `grid-column:${col};grid-row:${rowStart};`;
-
+      const colStyle = colEnd ? `${colStart}/${colEnd}` : `${colStart}`;
+      const rowStyle = rowEnd ? `${rowStart}/${rowEnd}` : `${rowStart}`;
       html += `
-        <div class="${cls}" style="${rowStyle}"
+        <div class="${cls}" style="grid-column:${colStyle};grid-row:${rowStyle};"
              onclick="mapClick(event,${no})"
              data-no="${no}" data-name="${escapeHtml(occupied ? r.vendor_name : "")}"
              data-vendor-no="${escapeHtml(occupied ? r.vendor_no : "")}"
@@ -367,31 +523,160 @@
         </div>`;
     });
 
-    // 類別圖例（去除重複 cls，合併同色類別）
-    const LEGEND_ITEMS = [
-      { label: '食品/餐飲', color: '#F57C00' },
-      { label: '生活/百貨', color: '#1565C0' },
-      { label: '服飾‧飾品', color: '#6A1B9A' },
-      { label: '生鮮/農產', color: '#00796B' },
-      { label: '鞋包/皮件', color: '#5D4037' },
-      { label: '其他',      color: '#757575' },
-    ];
-    const legendItems = LEGEND_ITEMS.map(({ label, color }) =>
-      `<span class="cat-legend-item">
-        <span class="cat-legend-dot" style="background:${color};"></span>${label}
-       </span>`
-    ).join('');
     html += `</div></div>
     <p class="map-disclaimer">本圖為示意性質，空間比例及位置僅供參考</p>
-    <div class="cat-legend">${legendItems}</div>
-    <div id="map-detail" class="map-detail" hidden></div>`;
+    ${buildMapLegend(legendCounts)}`;
 
-    $boothMap.innerHTML = html;
+    return html;
   }
+
+  function buildMapLegendCounts(dayRows) {
+    const counts = {};
+    dayRows
+      .filter(r => r.vendor_no)
+      .forEach(r => {
+        const key = getMapFilterKey(r.category);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    if (activeMapCat && !counts[activeMapCat]) activeMapCat = null;
+    return counts;
+  }
+
+  function buildMapLegend(counts) {
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    if (total === 0) {
+      return `<div class="cat-legend cat-legend-empty">今日尚無可篩選的攤商類別</div>`;
+    }
+    const allButton = `
+      <button type="button"
+              class="cat-legend-item map-filter-chip${!activeMapCat ? ' active' : ''}"
+              data-map-cat=""
+              aria-pressed="${!activeMapCat}">
+        <span class="cat-legend-dot" style="background:#1a73e8;"></span>
+        全部
+        <span class="cat-legend-count">${total}</span>
+      </button>`;
+    const filterButtons = MAP_FILTERS
+      .filter(item => counts[item.key])
+      .map(item => `
+        <button type="button"
+                class="cat-legend-item map-filter-chip${activeMapCat === item.key ? ' active' : ''}"
+                data-map-cat="${escapeHtml(item.key)}"
+                style="--legend-color:${item.color};"
+                aria-pressed="${activeMapCat === item.key}">
+          <span class="cat-legend-dot" style="background:${item.color};"></span>
+          ${item.label}
+          <span class="cat-legend-count">${counts[item.key]}</span>
+        </button>
+      `).join('');
+    return `<div class="cat-legend" aria-label="依類別篩選地圖">${allButton}${filterButtons}</div>`;
+  }
+
+  function getRestaurantColumns(layout) {
+    return [
+      [...layout.filter((r) => r.row === 1)].sort((a, b) => b.no - a.no),
+      [...layout.filter((r) => r.row === 3)].sort((a, b) => a.no - b.no),
+    ];
+  }
+
+  function renderRestaurantMap() {
+    // 北向朝上後：上方為北側用餐區走道，下方為臨攤區走道
+    let html = `<div class="floor-plan-wrapper rest-wrapper"><div class="north-indicator" aria-hidden="true">北 ↑</div><div class="rest-layout">`;
+
+    html += `<div class="rest-side-label rest-side-top">走道（用餐區）</div>`;
+    html += `<div class="rest-side-label rest-side-left">走道（用餐區）</div>`;
+
+    html += `<div class="rest-stalls">`;
+    getRestaurantColumns(restaurantLayout).forEach((column) => {
+      html += `<div class="rest-column">`;
+      column.forEach((r) => {
+        html += `
+          <div class="mc-card rest-card"
+               onclick="restClick(event,${r.no})"
+               data-no="${r.no}" data-zone="${r.zone}" data-name="${escapeHtml(r.name)}">
+            <div class="rest-zone">${r.zone}區</div>
+            <div class="mc-no">${r.no}號</div>
+            <div class="mc-name">${escapeHtml(r.name)}</div>
+          </div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="rest-side-label rest-side-right">走道（用餐區）</div>`;
+    html += `<div class="rest-side-label rest-side-bottom">走道<button class="back-to-stall back-to-stall-horizontal" onclick="switchZone('stall')" title="切回臨攤區"><span>🏪</span><span class="back-label">臨攤區</span></button></div>`;
+
+    html += `</div></div>
+    <p class="map-disclaimer">本圖為示意性質，空間比例及位置僅供參考</p>`;
+
+    return html;
+  }
+
+  function renderShopMap() {
+    let html = `<div class="floor-plan-wrapper shop-wrapper"><div class="north-indicator" aria-hidden="true">北 ↑</div>`;
+    html += `<div class="shop-header"><div class="shop-title">🏪 販賣部地圖</div><button class="back-to-stall back-to-stall-horizontal" onclick="switchZone('stall')" title="切回臨攤區"><span>🏪</span><span class="back-label">臨攤區</span></button></div>`;
+    html += `<div class="shop-layout">`;
+    html += `<div class="shop-entry-label" aria-hidden="true">門口</div>`;
+    shopLayout
+      .filter((s) => s.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code))
+      .forEach((s) => {
+        const extraClasses = s.slotKey === "center_711" ? "shop-card-large" : "";
+        html += `
+          <div class="mc-card shop-card${extraClasses ? ` ${extraClasses}` : ""}"
+               style="${SHOP_SLOT_STYLES[s.slotKey] || ""}"
+               onclick='shopClick(event,${JSON.stringify(s.code)})'
+               data-code="${escapeHtml(s.code)}" data-name="${escapeHtml(s.name || "")}">
+            <div class="shop-code">${escapeHtml(s.code)}</div>
+            <div class="shop-name${s.name ? "" : " shop-name-empty"}">${escapeHtml(s.name || "")}</div>
+          </div>`;
+      });
+    html += `</div></div>
+    <p class="map-disclaimer">本圖為示意性質，空間比例及位置僅供參考</p>`;
+
+    return html;
+  }
+
+  // 點擊餐廳 → 顯示詳情
+  window.restClick = function(e, no) {
+    const card = e.currentTarget;
+    $boothMap.querySelectorAll(".mc-card.mc-selected").forEach(el => el.classList.remove("mc-selected"));
+    card.classList.add("mc-selected");
+
+    const detail = document.getElementById("map-detail");
+    const name = card.dataset.name;
+    const zone = card.dataset.zone;
+    detail.innerHTML = `
+      <div class="detail-header">🍽️ ${no}號餐廳</div>
+      <div class="detail-row"><span>餐廳名稱</span><strong>${escapeHtml(name)}</strong></div>
+      <div class="detail-row"><span>區域代號</span><strong>${escapeHtml(zone)}區</strong></div>
+    `;
+    detail.hidden = false;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  window.shopClick = function(e, code) {
+    const card = e.currentTarget;
+    $boothMap.querySelectorAll(".mc-card.mc-selected").forEach(el => el.classList.remove("mc-selected"));
+    card.classList.add("mc-selected");
+
+    const detail = document.getElementById("map-detail");
+    const name = card.dataset.name;
+    detail.innerHTML = `
+      <div class="detail-header">🏪 ${escapeHtml(code)} 販賣部</div>
+      <div class="detail-row"><span>位置碼</span><strong>${escapeHtml(code)}</strong></div>
+      <div class="detail-row"><span>名稱</span><strong>${escapeHtml(name || "—")}</strong></div>
+    `;
+    detail.hidden = false;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 
   // 點擊攤位 → 顯示詳情（全域函數，供 onclick 呼叫）
   window.mapClick = function(e, no) {
-    const card = e.currentTarget;
+    selectStallCard(e.currentTarget, no, true);
+  };
+
+  function selectStallCard(card, no, shouldScroll) {
     // 清除其他選中
     $boothMap.querySelectorAll(".mc-card.mc-selected").forEach(el => el.classList.remove("mc-selected"));
     card.classList.add("mc-selected");
@@ -408,14 +693,32 @@
       const futureDates = getFutureSchedule(vendorNo, name);
       detail.innerHTML = `
         <div class="detail-header">${no}號攤位</div>
-        <div class="detail-row"><span>攤商名稱</span><strong>${name}</strong></div>
-        ${cat ? `<div class="detail-row"><span>類別</span><strong>${cat}</strong></div>` : ""}
-        ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${prod}</strong></div>` : ""}
+        <div class="detail-row"><span>攤商名稱</span><strong>${escapeHtml(name)}</strong></div>
+        ${cat ? `<div class="detail-row"><span>類別</span><strong>${escapeHtml(cat)}</strong></div>` : ""}
+        ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${escapeHtml(prod)}</strong></div>` : ""}
         ${buildScheduleHtml(futureDates)}
       `;
     }
     detail.hidden = false;
-  };
+    if (shouldScroll) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function handleMapContainerClick(e) {
+    const zoneBtn = e.target.closest("[data-zone-target]");
+    if (zoneBtn) {
+      mapZone = zoneBtn.dataset.zoneTarget;
+      pendingMapBoothNo = null;
+      render();
+      return;
+    }
+
+    const filterBtn = e.target.closest(".map-filter-chip[data-map-cat]");
+    if (filterBtn) {
+      activeMapCat = filterBtn.dataset.mapCat || null;
+      pendingMapBoothNo = null;
+      render();
+    }
+  }
 
   function handleListClick(e) {
     // 類別篩選 chip
@@ -447,9 +750,9 @@
     const futureDates = getFutureSchedule(vendorNo, vendorName);
     detail.innerHTML = `
       <div class="detail-header">${boothNo}號攤位</div>
-      <div class="detail-row"><span>攤商名稱</span><strong>${vendorName}</strong></div>
-      ${cat ? `<div class="detail-row"><span>類別</span><strong>${cat}</strong></div>` : ''}
-      ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${prod}</strong></div>` : ''}
+      <div class="detail-row"><span>攤商名稱</span><strong>${escapeHtml(vendorName)}</strong></div>
+      ${cat ? `<div class="detail-row"><span>類別</span><strong>${escapeHtml(cat)}</strong></div>` : ''}
+      ${prod ? `<div class="detail-row"><span>販售品項</span><strong>${escapeHtml(prod)}</strong></div>` : ''}
       ${buildScheduleHtml(futureDates)}
     `;
     detail.hidden = false;
@@ -512,7 +815,7 @@
         ? `<span class="src-cat-badge" style="background:${catInfo.color};">${catInfo.abbr}</span>`
         : '';
       const products = [...g.products].filter(Boolean).join('、');
-      const schedHtml = buildScheduleHtml(g.dates, '📅 擺攤日期');
+      const schedHtml = buildSearchScheduleHtml(g.dates, '📅 擺攤日期');
       return `
         <div class="search-result-card">
           <div class="src-header">
@@ -525,6 +828,38 @@
     }).join('');
 
     $results.innerHTML = cards;
+  }
+
+  function buildSearchScheduleHtml(rows, title) {
+    const items = rows.map(r => `
+      <div class="sched-item sched-item-action">
+        <span class="sched-date">${escapeHtml(r.date.replace(/-/g, '/'))} (${escapeHtml(r.weekday)})</span>
+        <span class="sched-right">
+          <span class="sched-booth">${escapeHtml(String(r.booth_no))}號</span>
+          <button type="button"
+                  class="sched-map-btn"
+                  data-map-date="${escapeHtml(r.date)}"
+                  data-map-booth="${r.booth_no}">
+            看地圖
+          </button>
+        </span>
+      </div>
+    `).join('');
+    return `<div class="detail-schedule"><div class="sched-title">${title}</div>${items}</div>`;
+  }
+
+  function handleSearchClick(e) {
+    const btn = e.target.closest(".sched-map-btn");
+    if (!btn) return;
+    const dateStr = btn.dataset.mapDate;
+    const boothNo = parseInt(btn.dataset.mapBooth, 10);
+    const idx = availableDates.indexOf(dateStr);
+    if (idx < 0 || !boothNo) return;
+    currentIndex = idx;
+    mapZone = "stall";
+    activeMapCat = null;
+    pendingMapBoothNo = boothNo;
+    switchView("map");
   }
 
   function debounce(fn, delay) {

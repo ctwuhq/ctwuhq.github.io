@@ -2,7 +2,7 @@
 //
 // 部署新版本時，只要修改 CACHE_VERSION 即可讓所有使用者拿到新檔案。
 // 格式建議：YYYY-MM-DD 或遞增版號
-const CACHE_VERSION = "2026-03-09f";
+const CACHE_VERSION = "2026-04-29a";
 const CACHE_NAME = `b1-stall-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -55,6 +55,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // data.json → Network First（Cloudflare Pages 版資料來源）
+  if (url.pathname.endsWith("/data.json")) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
   // index.html → Network First（避免舊 HTML 殼殼包著新 JS）
   if (url.pathname.endsWith("/") || url.pathname.endsWith("index.html")) {
     event.respondWith(networkFirst(event.request));
@@ -96,8 +102,16 @@ async function networkFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
     // Sheets API 離線時回傳空資料（讓 app.js 顯示離線提示）
-    if (new URL(request.url).hostname === "sheets.googleapis.com") {
+    const reqUrl = new URL(request.url);
+    if (reqUrl.hostname === "sheets.googleapis.com") {
       return new Response('{"values":[]}', {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // data.json 離線時回傳空資料
+    if (reqUrl.pathname.endsWith("/data.json")) {
+      return new Response('{"rows":[],"updated_at":""}', {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
