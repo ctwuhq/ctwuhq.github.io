@@ -7,6 +7,14 @@
   <title>B1攤位每日公告</title>
   <script src="js/config.js"></script>
   <script>
+    // 預先載入字體縮放比例，避免畫面閃爍
+    (function () {
+      const savedZoom = localStorage.getItem("font-zoom") || "1";
+      document.documentElement.setAttribute("data-zoom", savedZoom);
+      document.documentElement.style.setProperty("--zoom-factor", savedZoom);
+    })();
+  </script>
+  <script>
     // Google Analytics — 動態載入，由 config.js 的 GA_ID 決定
     if (typeof CONFIG !== "undefined" && CONFIG.GA_ID) {
       var _s = document.createElement("script");
@@ -56,6 +64,21 @@
   <main id="booth-list"   class="booth-list"   aria-label="攤位列表" hidden></main>
   <main id="booth-map"    class="booth-map"    aria-label="攤位地圖"></main>
   <main id="booth-search" class="booth-search" aria-label="廠商搜尋" hidden></main>
+
+  <!-- 字體大小調整懸浮視窗 -->
+  <div class="zoom-widget-container" id="zoom-widget">
+    <button class="zoom-widget-trigger" id="zoom-trigger" aria-label="調整字體大小" aria-expanded="false" aria-haspopup="true">
+      Aa
+    </button>
+    <div class="zoom-widget-panel" id="zoom-panel" hidden>
+      <div class="zoom-panel-title">字體大小</div>
+      <div class="zoom-panel-options">
+        <button class="zoom-panel-btn" data-zoom="1" aria-label="標準字體">標準</button>
+        <button class="zoom-panel-btn" data-zoom="1.3" aria-label="放大字體">放大</button>
+        <button class="zoom-panel-btn" data-zoom="1.6" aria-label="特大字體">特大</button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/app.js"></script>
   <script>

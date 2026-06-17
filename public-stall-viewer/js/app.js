@@ -47,12 +47,68 @@
   $boothMap.addEventListener("click", handleMapContainerClick);
   $boothSearch.addEventListener("click", handleSearchClick);
 
+  const $zoomTrigger = document.getElementById("zoom-trigger");
+  const $zoomPanel = document.getElementById("zoom-panel");
+  const $zoomWidget = document.getElementById("zoom-widget");
+
+  if ($zoomTrigger && $zoomPanel && $zoomWidget) {
+    $zoomTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isHidden = $zoomPanel.hidden;
+      $zoomPanel.hidden = !isHidden;
+      $zoomTrigger.setAttribute("aria-expanded", isHidden);
+    });
+
+    $zoomPanel.addEventListener("click", (e) => {
+      const btn = e.target.closest(".zoom-panel-btn");
+      if (!btn) return;
+      const zoomVal = btn.dataset.zoom;
+      localStorage.setItem("font-zoom", zoomVal);
+      applyZoom(zoomVal);
+    });
+
+    // 點擊外部關閉面板
+    document.addEventListener("click", (e) => {
+      if (!$zoomWidget.contains(e.target)) {
+        $zoomPanel.hidden = true;
+        $zoomTrigger.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // 按下 Escape 鍵關閉面板
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        $zoomPanel.hidden = true;
+        $zoomTrigger.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
   async function init() {
+    initZoom();
     if (!navigator.onLine) isOffline = true;
     await fetchData();
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
+  }
+
+  function initZoom() {
+    const currentZoom = localStorage.getItem("font-zoom") || "1";
+    applyZoom(currentZoom);
+  }
+
+  function applyZoom(zoomStr) {
+    document.documentElement.setAttribute("data-zoom", zoomStr);
+    document.documentElement.style.setProperty("--zoom-factor", zoomStr);
+    
+    // 更新按鈕選取狀態
+    const buttons = document.querySelectorAll(".zoom-panel-btn");
+    buttons.forEach(btn => {
+      const active = btn.dataset.zoom === zoomStr;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active);
+    });
   }
 
   function switchView(mode) {
@@ -426,16 +482,16 @@
 
   function buildZoneSwitcher() {
     const zones = [
-      { key: 'stall', label: '臨攤區' },
-      { key: 'restaurant', label: '餐廳區' },
-      { key: 'shop', label: '販賣部' },
+      { key: 'stall', label: '臨攤區', icon: '🏪' },
+      { key: 'restaurant', label: '餐廳區', icon: '🍽️' },
+      { key: 'shop', label: '販賣部', icon: '🛍️' },
     ];
-    const buttons = zones.map(({ key, label }) => `
+    const buttons = zones.map(({ key, label, icon }) => `
       <button type="button"
               class="zone-btn${mapZone === key ? ' active' : ''}"
               data-zone-target="${key}"
               aria-pressed="${mapZone === key}">
-        ${label}
+        <span>${icon}</span> <span>${label}</span>
       </button>
     `).join('');
     return `<div class="zone-switcher" role="group" aria-label="地圖區域切換">${buttons}</div>`;
@@ -484,7 +540,7 @@
     // 喜憨兒（東南側）
     html += `<div class="lm lm-xhn" style="grid-column:8/10;grid-row:6;">🌻 喜憨兒</div>`;
     // 樓梯（東北角）
-    html += `<div class="lm lm-stairs" style="grid-column:9;grid-row:1;">🪜 樓梯</div>`;
+    html += `<div class="lm lm-stairs" style="grid-column:8/10;grid-row:1;">🪜 樓梯</div>`;
 
     // 北向朝上後，實體牆改為縱向
     html += `<div class="wall-h" style="grid-column:5;grid-row:1/7;"></div>`;
@@ -652,7 +708,7 @@
       <div class="detail-row"><span>區域代號</span><strong>${escapeHtml(zone)}區</strong></div>
     `;
     detail.hidden = false;
-    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollIntoViewWithOffset(detail);
   };
 
   window.shopClick = function(e, code) {
@@ -668,7 +724,7 @@
       <div class="detail-row"><span>名稱</span><strong>${escapeHtml(name || "—")}</strong></div>
     `;
     detail.hidden = false;
-    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollIntoViewWithOffset(detail);
   };
 
   // 點擊攤位 → 顯示詳情（全域函數，供 onclick 呼叫）
@@ -700,7 +756,7 @@
       `;
     }
     detail.hidden = false;
-    if (shouldScroll) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (shouldScroll) scrollIntoViewWithOffset(detail);
   }
 
   function handleMapContainerClick(e) {
@@ -756,7 +812,7 @@
       ${buildScheduleHtml(futureDates)}
     `;
     detail.hidden = false;
-    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollIntoViewWithOffset(detail);
   }
 
   // ── 搜尋視圖 ──
@@ -889,5 +945,21 @@
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function scrollIntoViewWithOffset(element) {
+    if (!element) return;
+    const zoomVal = parseFloat(document.documentElement.style.getPropertyValue("--zoom-factor")) || 1;
+    const offset = 85 * zoomVal;
+    setTimeout(() => {
+      const rect = element.getBoundingClientRect();
+      const targetTop = window.pageYOffset + rect.bottom - window.innerHeight + offset;
+      if (rect.bottom > window.innerHeight - offset) {
+        window.scrollTo({
+          top: Math.max(window.pageYOffset + rect.top - 20, targetTop),
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   }
 })();
