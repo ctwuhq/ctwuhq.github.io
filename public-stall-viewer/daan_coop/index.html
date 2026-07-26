@@ -3,25 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>攤商擺攤查詢</title>
+  <title>攤商擺攤查詢 - 跨園區總入口</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+
+    function trackEvent(eventName, params = {}) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params);
+      }
+    }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
                    "PingFang TC", "Microsoft JhengHei", sans-serif;
-      background: #f5f7fa;
-      color: #333;
+      background: #f8fafc;
+      color: #1e293b;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
     header {
-      background: #2c7a4b;
+      background: #1e293b;
       color: #fff;
-      padding: 2rem 1rem;
+      padding: 2.2rem 1rem;
       text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     header h1 {
@@ -38,22 +53,96 @@
 
     main {
       flex: 1;
-      max-width: 860px;
+      max-width: 960px;
       width: 100%;
-      margin: 2.5rem auto;
+      margin: 2rem auto;
       padding: 0 1rem;
     }
 
+    .global-search-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .global-search-card label {
+      display: block;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #0f172a;
+      margin-bottom: 0.6rem;
+    }
+
+    .global-search-input {
+      width: 100%;
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 2px solid #6366f1;
+      border-radius: 8px;
+      background: #fff;
+      color: #1e293b;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .global-search-input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    }
+
+    .search-results-box {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .result-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.85rem 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .result-item:hover {
+      background: #eef2ff;
+      border-color: #818cf8;
+      transform: translateY(-1px);
+    }
+
+    .result-park-tag {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .tag-daan { background: #dcfce7; color: #15803d; }
+    .tag-coop { background: #e0f2fe; color: #0369a1; }
+    .tag-aiguo { background: #e0e7ff; color: #3730a3; }
+
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 1.5rem;
     }
 
     .card {
       background: #fff;
-      border: 1px solid #e0e6ed;
-      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
       padding: 1.75rem 1.5rem;
       text-decoration: none;
       color: inherit;
@@ -64,7 +153,7 @@
     }
 
     .card:hover {
-      box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
       transform: translateY(-3px);
     }
 
@@ -76,12 +165,12 @@
     .card h2 {
       font-size: 1.25rem;
       font-weight: 700;
-      color: #2c7a4b;
+      color: #1e293b;
     }
 
     .card p {
       font-size: 0.95rem;
-      color: #666;
+      color: #64748b;
       line-height: 1.6;
     }
 
@@ -89,7 +178,7 @@
       margin-top: auto;
       padding-top: 1rem;
       font-size: 0.9rem;
-      color: #2c7a4b;
+      color: #4f46e5;
       font-weight: 600;
     }
 
@@ -97,53 +186,178 @@
       text-align: center;
       padding: 1.5rem;
       font-size: 0.82rem;
-      color: #999;
+      color: #94a3b8;
     }
   </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-4Y1K5TMT9J');
-  </script>
 </head>
 <body>
   <header>
     <h1>攤商擺攤查詢</h1>
-    <p>查詢各地點攤商擺攤時間與品項資訊</p>
+    <p>跨園區即時擺攤時間、地點與品項搜尋</p>
   </header>
 
   <main>
+    <!-- 全站跨園區搜尋列 -->
+    <div class="global-search-card">
+      <label for="globalSearchInput">🔍 跨園區全站搜尋：</label>
+      <input type="text" id="globalSearchInput" class="global-search-input" placeholder="輸入攤商名稱、關鍵字 (如：壽司、油飯、包包、雨傘)...">
+      <div id="searchResults" class="search-results-box" style="display:none;"></div>
+    </div>
+
     <div class="cards">
-      <a class="card" href="../">
+      <a class="card" href="https://chtb1.pages.dev/" target="_blank" rel="noopener">
         <div class="card-icon">🏢</div>
         <h2>總公司B1攤商</h2>
         <p>總公司 B1 攤商排程資料，包含攤位位置、攤商名稱及販售商品資訊。</p>
-        <div class="card-arrow">查看資料 →</div>
+        <div class="card-arrow">前往外部頁面 ↗</div>
       </a>
       <a class="card" href="./daan/">
         <div class="card-icon">🌳</div>
         <h2>大安園區攤商</h2>
         <p>大安園區週邊攤商資料，包含攤位編號、攤商名稱及販售商品簡述。</p>
-        <div class="card-arrow">查看資料 →</div>
+        <div class="card-arrow">查看擺攤排程 →</div>
       </a>
       <a class="card" href="./coop/">
         <div class="card-icon">🛒</div>
         <h2>消費合作社攤商</h2>
         <p>消費合作社攤商排程資料，包含攤位位置、攤商名稱及備註說明。</p>
-        <div class="card-arrow">查看資料 →</div>
+        <div class="card-arrow">查看擺攤排程 →</div>
       </a>
       <a class="card" href="./aiguo/">
         <div class="card-icon">🏛️</div>
         <h2>愛國園區攤商</h2>
         <p>愛國園區攤商排程資料，包含行通大樓B1與文康中心攤位與擺攤資訊。</p>
-        <div class="card-arrow">查看資料 →</div>
+        <div class="card-arrow">查看擺攤排程 →</div>
       </a>
     </div>
   </main>
 
   <footer>資料由爬蟲自動更新，僅供參考</footer>
+
+  <script>
+    let daanData = [], coopData = [], aiguoData = [];
+    let searchTimer = null;
+
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function loadAllData() {
+      try {
+        const [r1, r2, r3] = await Promise.all([
+          fetch('daan/data.json').then(r => r.json()).catch(() => ({})),
+          fetch('coop/data.json').then(r => r.json()).catch(() => ({})),
+          fetch('aiguo/data.json').then(r => r.json()).catch(() => ({}))
+        ]);
+
+        daanData = r1.records || [];
+        
+        coopData = [];
+        (r2.sheets || []).forEach(s => {
+          (s.records || []).forEach(rec => coopData.push({ ...rec, sheetLabel: s.label || s.name }));
+        });
+
+        aiguoData = [];
+        (r3.sheets || []).forEach(s => {
+          (s.records || []).forEach(rec => aiguoData.push({ ...rec, sheetLabel: s.label || s.name }));
+        });
+      } catch (e) {
+        console.error('Cross-park data load error', e);
+      }
+    }
+
+    document.getElementById('globalSearchInput').addEventListener('input', (e) => {
+      const kw = e.target.value.trim().toLowerCase();
+      const box = document.getElementById('searchResults');
+
+      if (!kw) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        trackEvent('search_vendor', { search_term: kw, park: 'global_index' });
+      }, 500);
+
+      const results = [];
+
+      // 搜尋大安
+      daanData.forEach(r => {
+        if ((r.name && r.name.toLowerCase().includes(kw)) || (r.items && r.items.toLowerCase().includes(kw))) {
+          results.push({
+            park: '大安園區',
+            tagClass: 'tag-daan',
+            url: `./daan/`,
+            date: r.date,
+            title: r.name,
+            sub: `攤位 ${r.stall_id} | ${r.items || ''}`
+          });
+        }
+      });
+
+      // 搜尋合作社
+      coopData.forEach(r => {
+        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
+          results.push({
+            park: '消費合作社',
+            tagClass: 'tag-coop',
+            url: `./coop/`,
+            date: r.date,
+            title: r.vendor,
+            sub: `攤位 ${r.stall} | ${r.notes || ''}`
+          });
+        }
+      });
+
+      // 搜尋愛國
+      aiguoData.forEach(r => {
+        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
+          results.push({
+            park: '愛國園區',
+            tagClass: 'tag-aiguo',
+            url: `./aiguo/`,
+            date: r.date,
+            title: r.vendor,
+            sub: `${r.sheetLabel || ''} 攤位 ${r.stall} | ${r.notes || ''}`
+          });
+        }
+      });
+
+      if (results.length === 0) {
+        box.style.display = 'block';
+        box.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:1rem;">全站無符合「${escHtml(kw)}」的擺攤紀錄</div>`;
+        return;
+      }
+
+      box.style.display = 'flex';
+      let html = `<div style="font-size:0.9rem; font-weight:700; color:#4f46e5; margin-bottom:0.25rem;">全站共找到 ${results.length} 筆符合結果：</div>`;
+
+      results.slice(0, 12).forEach(item => {
+        html += `
+          <a class="result-item" href="${item.url}">
+            <div>
+              <div style="font-weight:700; font-size:0.95rem;">${escHtml(item.title)} <span style="font-size:0.85rem; color:#64748b; font-weight:400;">(${escHtml(item.date || '')})</span></div>
+              <div style="font-size:0.85rem; color:#64748b; margin-top:0.2rem;">${escHtml(item.sub)}</div>
+            </div>
+            <span class="result-park-tag ${item.tagClass}">${escHtml(item.park)} →</span>
+          </a>
+        `;
+      });
+
+      if (results.length > 12) {
+        html += `<div style="text-align:center; font-size:0.85rem; color:#94a3b8; padding:0.5rem;">還有 ${results.length - 12} 筆結果，請進入各園區查看更多...</div>`;
+      }
+
+      box.innerHTML = html;
+    });
+
+    loadAllData();
+  </script>
 </body>
 </html>

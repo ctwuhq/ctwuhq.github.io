@@ -4,6 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>愛國園區攤商查詢</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+
+    function trackEvent(eventName, params = {}) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params);
+      }
+    }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -62,46 +76,120 @@
       margin-bottom: 1rem;
     }
 
-    .controls {
+    .controls-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .controls-row {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      margin-bottom: 1.5rem;
       flex-wrap: wrap;
     }
 
-    .controls label {
-      font-weight: 600;
-      font-size: 0.95rem;
-      white-space: nowrap;
-      color: #334155;
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
-    .controls select, .controls input {
+    .btn {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      user-select: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: #e2e8f0;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+      border-color: #4338ca;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #4338ca;
+      color: #fff;
+    }
+
+    .date-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    select, input[type="text"], input[type="date"] {
       font-family: inherit;
       font-size: 0.95rem;
-      padding: 0.5rem 0.75rem;
+      padding: 0.45rem 0.75rem;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
       background: #fff;
       color: #1e293b;
     }
 
-    .controls select {
+    select {
       cursor: pointer;
-      min-width: 180px;
+      width: 100%;
       border-color: #6366f1;
     }
 
-    .controls input {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    .controls select:focus, .controls input:focus {
+    select:focus, input:focus {
       outline: none;
       border-color: #4f46e5;
       box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    input[type="date"] {
+      cursor: pointer;
+      padding: 0.4rem 0.5rem;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .search-hint {
+      font-size: 0.88rem;
+      color: #4f46e5;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
     }
 
     .section-title {
@@ -187,12 +275,24 @@
   <main>
     <div class="meta-bar" id="meta-bar">資料載入中...</div>
 
-    <div class="controls" id="controls" style="display:none">
-      <label for="date-select">選擇日期：</label>
-      <select id="date-select"></select>
+    <div class="controls-card" id="controls" style="display:none">
+      <div class="controls-row">
+        <!-- 快捷切換按鈕組 -->
+        <div class="btn-group">
+          <button type="button" class="btn" id="btn-prev" title="移至上一個擺攤日">◀ 前一天</button>
+          <button type="button" class="btn btn-primary" id="btn-today" title="移至今天或最近擺攤日">今日</button>
+          <button type="button" class="btn" id="btn-next" title="移至下一個擺攤日">後一天 ▶</button>
+        </div>
 
-      <label for="search-input" style="margin-left:auto;">搜尋：</label>
-      <input type="text" id="search-input" placeholder="搜尋攤商或攤位...">
+        <!-- 日期下拉與 Popover -->
+        <div class="date-select-wrap">
+          <select id="date-select"></select>
+          <input type="date" id="date-picker" title="使用日曆選取日期">
+        </div>
+
+        <!-- 跨日期關鍵字搜尋 -->
+        <input type="text" class="search-input" id="search-input" placeholder="🔍 搜尋攤商名稱/攤位 (跨全日期)...">
+      </div>
     </div>
 
     <div id="content-wrap">
@@ -203,8 +303,12 @@
   <footer>資料來源：愛國園區擺攤登記表，由爬蟲自動更新</footer>
 
   <script>
-    let allSheets = [];
     let dateMap = {}; // date -> array of { sheetTitle, record }
+    let dateSet = [];
+    let dateToDayMap = {};
+    let bestDateStr = '';
+    let searchTimer = null;
+    let allFlattenRecords = []; // array of { date, day, sheetTitle, record }
 
     function todayStr() {
       const d = new Date();
@@ -224,16 +328,13 @@
     function findBestDate(dates) {
       const todayNorm = normalizeDate(todayStr());
       const sortedNorm = dates.map(d => ({ raw: d, norm: normalizeDate(d) }));
-      
-      // 尋找今日完全吻合
+
       const exact = sortedNorm.find(x => x.norm === todayNorm);
       if (exact) return exact.raw;
 
-      // 尋找未來的最近日期
       const future = sortedNorm.filter(x => x.norm >= todayNorm);
       if (future.length > 0) return future[0].raw;
 
-      // 若皆無未來日期，則回傳最後最新日期
       return dates[dates.length - 1];
     }
 
@@ -254,27 +355,37 @@
         document.getElementById('meta-bar').textContent =
           `最後更新時間：${data.updated_at || '未知'} ｜ 來源：${data.source || '愛國園區'}`;
 
-        allSheets = data.sheets || [];
-        dateMap = {};
+        trackEvent('view_park', { park_name: '愛國園區' });
 
-        // 收集與索引所有紀錄
+        const allSheets = data.sheets || [];
+        dateMap = {};
+        dateToDayMap = {};
+        allFlattenRecords = [];
+
+        const currentMonthStart = normalizeDate(todayStr()).slice(0, 7) + '-01';
+
         allSheets.forEach(sheet => {
           (sheet.records || []).forEach(r => {
-            if (r.date) {
+            if (r.date && normalizeDate(r.date) >= currentMonthStart) {
               if (!dateMap[r.date]) dateMap[r.date] = [];
               dateMap[r.date].push({
                 sheetTitle: sheet.label || sheet.name,
                 record: r
               });
+              allFlattenRecords.push({
+                date: r.date,
+                day: r.day,
+                sheetTitle: sheet.label || sheet.name,
+                record: r
+              });
+              if (r.day && !dateToDayMap[r.date]) {
+                dateToDayMap[r.date] = r.day;
+              }
             }
           });
         });
 
-        // 整理並精確排序不重複日期，過濾保留當月（含）以後的日期
-        const currentMonthStart = normalizeDate(todayStr()).slice(0, 7) + '-01';
-        const dateSet = Object.keys(dateMap)
-          .filter(d => normalizeDate(d) >= currentMonthStart)
-          .sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
+        dateSet = Object.keys(dateMap).sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
 
         if (dateSet.length === 0) {
           showEmpty('目前無擺攤資料');
@@ -283,21 +394,84 @@
 
         const dateSelect = document.getElementById('date-select');
         dateSelect.innerHTML = '';
+        bestDateStr = findBestDate(dateSet);
+
         dateSet.forEach(d => {
           const opt = document.createElement('option');
           opt.value = d;
-          opt.textContent = d;
+          const dayLabel = dateToDayMap[d] ? ` (${dateToDayMap[d]})` : '';
+          const tag = (d === bestDateStr && normalizeDate(d) === normalizeDate(todayStr())) ? ' ⭐️ 今日' : '';
+          opt.textContent = `${d}${dayLabel}${tag}`;
           dateSelect.appendChild(opt);
         });
 
-        // 預設鎖定今日或最近未來日期
-        const bestDate = findBestDate(dateSet);
-        dateSelect.value = bestDate;
+        dateSelect.value = bestDateStr;
+        updateDatePicker(bestDateStr);
 
         document.getElementById('controls').style.display = 'flex';
 
-        dateSelect.addEventListener('change', () => renderCurrentDate());
-        document.getElementById('search-input').addEventListener('input', () => renderCurrentDate());
+        // 綁定事件
+        dateSelect.addEventListener('change', (e) => {
+          updateDatePicker(e.target.value);
+          trackEvent('select_date', { date: e.target.value, park: 'aiguo' });
+          renderCurrentDate();
+        });
+
+        document.getElementById('date-picker').addEventListener('change', (e) => {
+          if (e.target.value) {
+            const pickedDate = e.target.value.replace(/-/g, '/');
+            if (dateMap[pickedDate]) {
+              dateSelect.value = pickedDate;
+            } else {
+              const pickedNorm = normalizeDate(pickedDate);
+              const closest = dateSet.reduce((prev, curr) =>
+                Math.abs(normalizeDate(curr).localeCompare(pickedNorm)) < Math.abs(normalizeDate(prev).localeCompare(pickedNorm)) ? curr : prev
+              );
+              dateSelect.value = closest;
+              updateDatePicker(closest);
+            }
+            trackEvent('select_date', { date: dateSelect.value, park: 'aiguo', source: 'datepicker' });
+            renderCurrentDate();
+          }
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+          const idx = dateSet.indexOf(dateSelect.value);
+          if (idx > 0) {
+            dateSelect.value = dateSet[idx - 1];
+            updateDatePicker(dateSet[idx - 1]);
+            trackEvent('click_quick_nav', { action: 'prev_day', park: 'aiguo' });
+            renderCurrentDate();
+          }
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+          const idx = dateSet.indexOf(dateSelect.value);
+          if (idx < dateSet.length - 1) {
+            dateSelect.value = dateSet[idx + 1];
+            updateDatePicker(dateSet[idx + 1]);
+            trackEvent('click_quick_nav', { action: 'next_day', park: 'aiguo' });
+            renderCurrentDate();
+          }
+        });
+
+        document.getElementById('btn-today').addEventListener('click', () => {
+          dateSelect.value = bestDateStr;
+          updateDatePicker(bestDateStr);
+          trackEvent('click_quick_nav', { action: 'today', park: 'aiguo' });
+          renderCurrentDate();
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+          renderCurrentDate();
+          const kw = e.target.value.trim();
+          if (kw) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+              trackEvent('search_vendor', { search_term: kw, park: 'aiguo' });
+            }, 500);
+          }
+        });
 
         renderCurrentDate();
       } catch (err) {
@@ -307,16 +481,33 @@
       }
     }
 
+    function updateDatePicker(dateStr) {
+      const picker = document.getElementById('date-picker');
+      if (dateStr) {
+        picker.value = normalizeDate(dateStr);
+      }
+    }
+
+    function updateNavButtons(currentDate) {
+      const idx = dateSet.indexOf(currentDate);
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
+
+      btnPrev.disabled = (idx <= 0);
+      btnNext.disabled = (idx >= dateSet.length - 1 || idx === -1);
+    }
+
     function renderCurrentDate() {
       const dateSelect = document.getElementById('date-select');
       const searchKw = document.getElementById('search-input').value.trim().toLowerCase();
       const selectedDate = dateSelect.value;
       const contentWrap = document.getElementById('content-wrap');
 
-      let items = dateMap[selectedDate] || [];
+      updateNavButtons(selectedDate);
 
+      // 若有搜尋關鍵字：執行跨全日期搜尋
       if (searchKw) {
-        items = items.filter(x => {
+        const matches = allFlattenRecords.filter(x => {
           const r = x.record;
           return (
             (r.vendor && r.vendor.toLowerCase().includes(searchKw)) ||
@@ -325,14 +516,70 @@
             (x.sheetTitle && x.sheetTitle.toLowerCase().includes(searchKw))
           );
         });
-      }
 
-      if (items.length === 0) {
-        contentWrap.innerHTML = '<div class="empty-msg">該日期無符合條件的攤商擺攤</div>';
+        if (matches.length === 0) {
+          contentWrap.innerHTML = `<div class="empty-msg">全區皆無符合「${escHtml(searchKw)}」的擺攤紀錄</div>`;
+          return;
+        }
+
+        // 按日期分群
+        const dateGroup = {};
+        matches.forEach(x => {
+          if (!dateGroup[x.date]) dateGroup[x.date] = [];
+          dateGroup[x.date].push(x);
+        });
+
+        const sortedMatchDates = Object.keys(dateGroup).sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
+
+        let html = `<div class="search-hint">🔍 全園區搜尋「${escHtml(searchKw)}」共找到 ${matches.length} 筆擺攤紀錄：</div>`;
+
+        sortedMatchDates.forEach(d => {
+          const groupItems = dateGroup[d];
+          const dayLabel = groupItems[0].day ? ` (${groupItems[0].day})` : '';
+          html += `<div class="section-title">📅 ${escHtml(d)}${escHtml(dayLabel)}</div>`;
+          html += `
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>分區/地點</th>
+                    <th>攤位</th>
+                    <th>攤商名稱</th>
+                    <th>備註</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          groupItems.forEach(x => {
+            const r = x.record;
+            html += `
+              <tr>
+                <td style="color: #6366f1; font-weight: 600;">${escHtml(x.sheetTitle || '-')}</td>
+                <td><span class="badge">${escHtml(r.stall || '-')}</span></td>
+                <td style="font-weight: 600;">${escHtml(r.vendor || '-')}</td>
+                <td style="color: #64748b;">${escHtml(r.notes || '-')}</td>
+              </tr>
+            `;
+          });
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
+        });
+
+        contentWrap.innerHTML = html;
         return;
       }
 
-      // 依分區/區域分群展示
+      // 無搜尋關鍵字：渲染選定單日
+      let items = dateMap[selectedDate] || [];
+
+      if (items.length === 0) {
+        contentWrap.innerHTML = '<div class="empty-msg">該日期無攤商擺攤</div>';
+        return;
+      }
+
       const sectionGroup = {};
       items.forEach(x => {
         if (!sectionGroup[x.sheetTitle]) sectionGroup[x.sheetTitle] = [];
