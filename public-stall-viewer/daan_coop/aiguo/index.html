@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>愛國園區攤商查詢</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                   "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #4f46e5;
+      color: #fff;
+      padding: 1.25rem 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    header .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header a.back {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+
+    header a.back:hover { color: #fff; text-decoration: underline; }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    main {
+      flex: 1;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    .meta-bar {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      color: #334155;
+    }
+
+    .controls select, .controls input {
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #1e293b;
+    }
+
+    .controls select {
+      cursor: pointer;
+      min-width: 180px;
+      border-color: #6366f1;
+    }
+
+    .controls input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .controls select:focus, .controls input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #3730a3;
+      margin: 1.5rem 0 0.75rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 4px;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .empty-msg {
+      padding: 2.5rem;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      background: #fff;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a class="back" href="../">← 返回首頁</a>
+      <h1>🏛️ 愛國園區攤商查詢</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="meta-bar" id="meta-bar">資料載入中...</div>
+
+    <div class="controls" id="controls" style="display:none">
+      <label for="date-select">選擇日期：</label>
+      <select id="date-select"></select>
+
+      <label for="search-input" style="margin-left:auto;">搜尋：</label>
+      <input type="text" id="search-input" placeholder="搜尋攤商或攤位...">
+    </div>
+
+    <div id="content-wrap">
+      <div class="empty-msg">載入資料中...</div>
+    </div>
+  </main>
+
+  <footer>資料來源：愛國園區擺攤登記表，由爬蟲自動更新</footer>
+
+  <script>
+    let allSheets = [];
+    let dateMap = {}; // date -> array of { sheetTitle, record }
+
+    function todayStr() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${day}`;
+    }
+
+    function normalizeDate(str) {
+      if (!str) return '';
+      const parts = str.split(/[-\/]/);
+      if (parts.length < 3) return str;
+      return `${parts[0]}-${String(+parts[1]).padStart(2, '0')}-${String(+parts[2]).padStart(2, '0')}`;
+    }
+
+    function findBestDate(dates) {
+      const todayNorm = normalizeDate(todayStr());
+      const sortedNorm = dates.map(d => ({ raw: d, norm: normalizeDate(d) }));
+      
+      // 尋找今日完全吻合
+      const exact = sortedNorm.find(x => x.norm === todayNorm);
+      if (exact) return exact.raw;
+
+      // 尋找未來的最近日期
+      const future = sortedNorm.filter(x => x.norm >= todayNorm);
+      if (future.length > 0) return future[0].raw;
+
+      // 若皆無未來日期，則回傳最後最新日期
+      return dates[dates.length - 1];
+    }
+
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function loadData() {
+      try {
+        const resp = await fetch('data.json');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        document.getElementById('meta-bar').textContent =
+          `最後更新時間：${data.updated_at || '未知'} ｜ 來源：${data.source || '愛國園區'}`;
+
+        allSheets = data.sheets || [];
+        dateMap = {};
+
+        // 收集與索引所有紀錄
+        allSheets.forEach(sheet => {
+          (sheet.records || []).forEach(r => {
+            if (r.date) {
+              if (!dateMap[r.date]) dateMap[r.date] = [];
+              dateMap[r.date].push({
+                sheetTitle: sheet.label || sheet.name,
+                record: r
+              });
+            }
+          });
+        });
+
+        // 整理並精確排序不重複日期 (Chronological Order)
+        const dateSet = Object.keys(dateMap).sort((a, b) =>
+          normalizeDate(a).localeCompare(normalizeDate(b))
+        );
+
+        if (dateSet.length === 0) {
+          showEmpty('目前無擺攤資料');
+          return;
+        }
+
+        const dateSelect = document.getElementById('date-select');
+        dateSelect.innerHTML = '';
+        dateSet.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          dateSelect.appendChild(opt);
+        });
+
+        // 預設鎖定今日或最近未來日期
+        const bestDate = findBestDate(dateSet);
+        dateSelect.value = bestDate;
+
+        document.getElementById('controls').style.display = 'flex';
+
+        dateSelect.addEventListener('change', () => renderCurrentDate());
+        document.getElementById('search-input').addEventListener('input', () => renderCurrentDate());
+
+        renderCurrentDate();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('meta-bar').textContent = '無法讀取資料';
+        showEmpty('載入資料失敗，請確認 data.json 是否存在');
+      }
+    }
+
+    function renderCurrentDate() {
+      const dateSelect = document.getElementById('date-select');
+      const searchKw = document.getElementById('search-input').value.trim().toLowerCase();
+      const selectedDate = dateSelect.value;
+      const contentWrap = document.getElementById('content-wrap');
+
+      let items = dateMap[selectedDate] || [];
+
+      if (searchKw) {
+        items = items.filter(x => {
+          const r = x.record;
+          return (
+            (r.vendor && r.vendor.toLowerCase().includes(searchKw)) ||
+            (r.stall && r.stall.toLowerCase().includes(searchKw)) ||
+            (r.notes && r.notes.toLowerCase().includes(searchKw)) ||
+            (x.sheetTitle && x.sheetTitle.toLowerCase().includes(searchKw))
+          );
+        });
+      }
+
+      if (items.length === 0) {
+        contentWrap.innerHTML = '<div class="empty-msg">該日期無符合條件的攤商擺攤</div>';
+        return;
+      }
+
+      // 依分區/區域分群展示
+      const sectionGroup = {};
+      items.forEach(x => {
+        if (!sectionGroup[x.sheetTitle]) sectionGroup[x.sheetTitle] = [];
+        sectionGroup[x.sheetTitle].push(x.record);
+      });
+
+      let html = '';
+      for (const [title, records] of Object.entries(sectionGroup)) {
+        html += `<div class="section-title">📍 ${escHtml(title)}</div>`;
+        html += `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>星期</th>
+                  <th>攤位/位置</th>
+                  <th>攤商名稱</th>
+                  <th>備註</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        records.forEach(r => {
+          html += `
+            <tr>
+              <td>${escHtml(r.day || '-')}</td>
+              <td><span class="badge">${escHtml(r.stall || '-')}</span></td>
+              <td style="font-weight: 600;">${escHtml(r.vendor || '-')}</td>
+              <td style="color: #64748b;">${escHtml(r.notes || '-')}</td>
+            </tr>
+          `;
+        });
+        html += `
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      contentWrap.innerHTML = html;
+    }
+
+    function showEmpty(msg) {
+      document.getElementById('content-wrap').innerHTML = `<div class="empty-msg">${msg}</div>`;
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
