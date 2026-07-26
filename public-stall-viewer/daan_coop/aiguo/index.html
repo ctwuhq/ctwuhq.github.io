@@ -270,10 +270,11 @@
           });
         });
 
-        // 整理並精確排序不重複日期 (Chronological Order)
-        const dateSet = Object.keys(dateMap).sort((a, b) =>
-          normalizeDate(a).localeCompare(normalizeDate(b))
-        );
+        // 整理並精確排序不重複日期，過濾保留當月（含）以後的日期
+        const currentMonthStart = normalizeDate(todayStr()).slice(0, 7) + '-01';
+        const dateSet = Object.keys(dateMap)
+          .filter(d => normalizeDate(d) >= currentMonthStart)
+          .sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
 
         if (dateSet.length === 0) {
           showEmpty('目前無擺攤資料');
