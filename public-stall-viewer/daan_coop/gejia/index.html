@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個家大樓攤商擺攤查詢</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4Y1K5TMT9J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-4Y1K5TMT9J');
+
+    function trackEvent(eventName, params = {}) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params);
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                   "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #0f766e;
+      color: #fff;
+      padding: 1.25rem 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    header .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header a.back {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+
+    header a.back:hover { color: #fff; text-decoration: underline; }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    main {
+      flex: 1;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    .meta-bar {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .controls-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      user-select: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: #e2e8f0;
+    }
+
+    .btn-primary {
+      background: #0f766e;
+      color: #fff;
+      border-color: #0f766e;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #115e59;
+      color: #fff;
+    }
+
+    .date-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .date-select-wrap label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    select, input[type="text"] {
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #1e293b;
+    }
+
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: #0f766e;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+    }
+
+    select {
+      flex: 1;
+      cursor: pointer;
+
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%20475569' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.6rem center;
+      padding-right: 2rem;
+      appearance: none;
+    }
+
+    .sheet-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.75rem;
+    }
+
+    .tab-btn {
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.4rem 0.85rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      background: #0f766e;
+      color: #fff;
+      border-color: #0f766e;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .search-wrap input { flex: 1; }
+
+    .result-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #475569;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .result-info strong { color: #0f172a; }
+
+    .view-toggle {
+      display: flex;
+      gap: 0.25rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 2px;
+      background: #f1f5f9;
+    }
+
+    .view-btn {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.55rem;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .view-btn.active {
+      background: #fff;
+      color: #0f172a;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .vendor-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .vendor-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .vendor-card .date-badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f766e;
+      background: #ccfbf1;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .vendor-card .stall-name {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .vendor-card .vendor-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .vendor-card .vendor-notes {
+      font-size: 0.82rem;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.2rem;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    table.data-table th, table.data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    table.data-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    table.data-table tr:last-child td { border-bottom: none; }
+    table.data-table tr:hover td { background: #f8fafc; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      color: #64748b;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="../" class="back">← 回擺攤總入口</a>
+      <h1>🏢 個家大樓攤商擺攤查詢</h1>
+    </div>
+  </header>
+
+  <main>
+    <div id="metaBar" class="meta-bar">正在載入資料...</div>
+
+    <div class="controls-card">
+      <div id="sheetTabs" class="sheet-tabs"></div>
+
+      <div class="controls-row">
+        <div class="date-select-wrap">
+          <label for="dateSelect">📅 選擇日期：</label>
+          <select id="dateSelect">
+            <option value="all">所有日期</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnPrevDate" class="btn" title="前一天">◀ 前一天</button>
+          <button id="btnToday" class="btn btn-primary" title="今日擺攤">今日擺攤</button>
+          <button id="btnNextDate" class="btn" title="後一天">後一天 ▶</button>
+        </div>
+
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="搜尋攤商名稱或關鍵字...">
+        </div>
+      </div>
+    </div>
+
+    <div class="result-info">
+      <div id="countSummary">載入中...</div>
+      <div class="view-toggle">
+        <button id="btnCardView" class="view-btn active">卡片</button>
+        <button id="btnTableView" class="view-btn">表格</button>
+      </div>
+    </div>
+
+    <div id="contentBox"></div>
+  </main>
+
+  <footer>資料由爬蟲自動更新，僅供參考</footer>
+
+  <script>
+    let rawData = null;
+    let currentSheetIdx = 0;
+    let activeView = 'card'; // 'card' or 'table'
+    let searchTimer = null;
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function init() {
+      try {
+        const resp = await fetch('data.json');
+        if (!resp.ok) throw new Error('data.json load failed');
+        rawData = await resp.json();
+
+        const updatedStr = rawData.updated_at
+          ? new Date(rawData.updated_at).toLocaleString('zh-TW')
+          : '未知';
+        document.getElementById('metaBar').textContent = `資料更新時間：${updatedStr}`;
+
+        renderSheetTabs();
+        setupEventListeners();
+        switchSheet(0);
+      } catch (err) {
+        document.getElementById('metaBar').textContent = '⚠️ 無法載入資料';
+        document.getElementById('contentBox').innerHTML = `
+          <div class="empty-state">
+            <h3>資料載入失敗</h3>
+            <p style="margin-top:0.5rem;">請確認 data.json 檔案是否存在。</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderSheetTabs() {
+      const container = document.getElementById('sheetTabs');
+      if (!rawData || !rawData.sheets || rawData.sheets.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.innerHTML = rawData.sheets.map((s, idx) => `
+        <button class="tab-btn ${idx === 0 ? 'active' : ''}" onclick="switchSheet(${idx})">
+          ${esc(s.label || s.name)} (${(s.records || []).length})
+        </button>
+      `).join('');
+    }
+
+    function switchSheet(idx) {
+      currentSheetIdx = idx;
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach((tab, i) => {
+        tab.classList.toggle('active', i === idx);
+      });
+
+      populateDateOptions();
+      filterAndRender();
+    }
+
+    function getActiveRecords() {
+      if (!rawData || !rawData.sheets || !rawData.sheets[currentSheetIdx]) return [];
+      return rawData.sheets[currentSheetIdx].records || [];
+    }
+
+    function populateDateOptions() {
+      const records = getActiveRecords();
+      const select = document.getElementById('dateSelect');
+      const dates = Array.from(new Set(records.map(r => r.date))).sort();
+
+      select.innerHTML = '<option value="all">所有日期</option>' +
+        dates.map(d => `<option value="${d}">${d}</option>`).join('');
+    }
+
+    function setupEventListeners() {
+      document.getElementById('dateSelect').addEventListener('change', (e) => {
+        trackEvent('filter_date', { date: e.target.value, park: 'gejia' });
+        filterAndRender();
+      });
+
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        const kw = e.target.value.trim();
+        if (kw) {
+          searchTimer = setTimeout(() => {
+            trackEvent('search_vendor', { search_term: kw, park: 'gejia' });
+          }, 500);
+        }
+        filterAndRender();
+      });
+
+      document.getElementById('btnToday').addEventListener('click', () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const day = today.getDate();
+        const todayStr = `${year}/${month}/${day}`;
+
+        const select = document.getElementById('dateSelect');
+        const options = Array.from(select.options).map(o => o.value);
+        if (options.includes(todayStr)) {
+          select.value = todayStr;
+        } else {
+          alert(`今日 (${todayStr}) 本區無擺攤資料記錄。`);
+          select.value = 'all';
+        }
+        trackEvent('click_today', { park: 'gejia' });
+        filterAndRender();
+      });
+
+      document.getElementById('btnPrevDate').addEventListener('click', () => stepDate(-1));
+      document.getElementById('btnNextDate').addEventListener('click', () => stepDate(1));
+
+      document.getElementById('btnCardView').addEventListener('click', () => {
+        activeView = 'card';
+        document.getElementById('btnCardView').classList.add('active');
+        document.getElementById('btnTableView').classList.remove('active');
+        filterAndRender();
+      });
+
+      document.getElementById('btnTableView').addEventListener('click', () => {
+        activeView = 'table';
+        document.getElementById('btnTableView').classList.add('active');
+        document.getElementById('btnCardView').classList.remove('active');
+        filterAndRender();
+      });
+    }
+
+    function stepDate(direction) {
+      const select = document.getElementById('dateSelect');
+      const options = Array.from(select.options).map(o => o.value).filter(v => v !== 'all');
+      if (options.length === 0) return;
+
+      const current = select.value;
+      let targetIdx = 0;
+
+      if (current === 'all') {
+        targetIdx = direction > 0 ? 0 : options.length - 1;
+      } else {
+        const curIdx = options.indexOf(current);
+        if (curIdx !== -1) {
+          targetIdx = curIdx + direction;
+          if (targetIdx < 0) targetIdx = 0;
+          if (targetIdx >= options.length) targetIdx = options.length - 1;
+        }
+      }
+
+      select.value = options[targetIdx];
+      filterAndRender();
+    }
+
+    function filterAndRender() {
+      const selectedDate = document.getElementById('dateSelect').value;
+      const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      let records = getActiveRecords();
+
+      if (selectedDate !== 'all') {
+        records = records.filter(r => r.date === selectedDate);
+      }
+
+      if (kw) {
+        records = records.filter(r =>
+          (r.vendor && r.vendor.toLowerCase().includes(kw)) ||
+          (r.stall && r.stall.toLowerCase().includes(kw)) ||
+          (r.notes && r.notes.toLowerCase().includes(kw))
+        );
+      }
+
+      document.getElementById('countSummary').innerHTML =
+        `共 <strong>${records.length}</strong> 筆擺攤記錄`;
+
+      const box = document.getElementById('contentBox');
+      if (records.length === 0) {
+        box.innerHTML = `
+          <div class="empty-state">
+            <h3>目前無符合的擺攤記錄</h3>
+            <p style="margin-top:0.5rem;">請嘗試選擇其他日期或清除搜尋關鍵字。</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (activeView === 'card') {
+        box.innerHTML = `
+          <div class="cards-grid">
+            ${records.map(r => `
+              <div class="vendor-card">
+                <span class="date-badge">📅 ${esc(r.date)}</span>
+                <div class="stall-name">📍 ${esc(r.stall)}</div>
+                <div class="vendor-title">${esc(r.vendor)}</div>
+                ${r.notes ? `<div class="vendor-notes">💡 ${esc(r.notes)}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        box.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>攤位位置</th>
+                <th>攤商名稱</th>
+                <th>備註</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => `
+                <tr>
+                  <td>${esc(r.date)}</td>
+                  <td>${esc(r.stall)}</td>
+                  <td><strong>${esc(r.vendor)}</strong></td>
+                  <td>${esc(r.notes || '-')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

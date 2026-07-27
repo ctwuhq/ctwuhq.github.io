@@ -132,6 +132,7 @@
     .tag-daan { background: #dcfce7; color: #15803d; }
     .tag-coop { background: #e0f2fe; color: #0369a1; }
     .tag-aiguo { background: #e0e7ff; color: #3730a3; }
+    .tag-gejia { background: #ccfbf1; color: #0f766e; }
 
     .cards {
       display: grid;
@@ -229,13 +230,19 @@
         <p>愛國園區攤商排程資料，包含行通大樓B1與文康中心攤位與擺攤資訊。</p>
         <div class="card-arrow">查看擺攤排程 →</div>
       </a>
+      <a class="card" href="./gejia/">
+        <div class="card-icon">🏢</div>
+        <h2>個家大樓攤商</h2>
+        <p>個家大樓攤商排程資料，包含各月份攤位位置、攤商名稱及備註資訊。</p>
+        <div class="card-arrow">查看擺攤排程 →</div>
+      </a>
     </div>
   </main>
 
   <footer>資料由爬蟲自動更新，僅供參考</footer>
 
   <script>
-    let daanData = [], coopData = [], aiguoData = [];
+    let daanData = [], coopData = [], aiguoData = [], gejiaData = [];
     let searchTimer = null;
 
     function escHtml(str) {
@@ -248,10 +255,11 @@
 
     async function loadAllData() {
       try {
-        const [r1, r2, r3] = await Promise.all([
+        const [r1, r2, r3, r4] = await Promise.all([
           fetch('daan/data.json').then(r => r.json()).catch(() => ({})),
           fetch('coop/data.json').then(r => r.json()).catch(() => ({})),
-          fetch('aiguo/data.json').then(r => r.json()).catch(() => ({}))
+          fetch('aiguo/data.json').then(r => r.json()).catch(() => ({})),
+          fetch('gejia/data.json').then(r => r.json()).catch(() => ({}))
         ]);
 
         daanData = r1.records || [];
@@ -264,6 +272,11 @@
         aiguoData = [];
         (r3.sheets || []).forEach(s => {
           (s.records || []).forEach(rec => aiguoData.push({ ...rec, sheetLabel: s.label || s.name }));
+        });
+
+        gejiaData = [];
+        (r4.sheets || []).forEach(s => {
+          (s.records || []).forEach(rec => gejiaData.push({ ...rec, sheetLabel: s.label || s.name }));
         });
       } catch (e) {
         console.error('Cross-park data load error', e);
@@ -322,6 +335,20 @@
             park: '愛國園區',
             tagClass: 'tag-aiguo',
             url: `./aiguo/`,
+            date: r.date,
+            title: r.vendor,
+            sub: `${r.sheetLabel || ''} 攤位 ${r.stall} | ${r.notes || ''}`
+          });
+        }
+      });
+
+      // 搜尋個家大樓
+      gejiaData.forEach(r => {
+        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
+          results.push({
+            park: '個家大樓',
+            tagClass: 'tag-gejia',
+            url: `./gejia/`,
             date: r.date,
             title: r.vendor,
             sub: `${r.sheetLabel || ''} 攤位 ${r.stall} | ${r.notes || ''}`
