@@ -472,6 +472,13 @@
       filterAndRender();
     }
 
+    function normalizeDate(str) {
+      if (!str) return '';
+      const parts = str.split(/[-\/]/);
+      if (parts.length < 3) return str;
+      return `${parts[0]}-${String(+parts[1]).padStart(2, '0')}-${String(+parts[2]).padStart(2, '0')}`;
+    }
+
     function getActiveRecords() {
       if (!rawData || !rawData.sheets || !rawData.sheets[currentSheetIdx]) return [];
       return rawData.sheets[currentSheetIdx].records || [];
@@ -480,7 +487,8 @@
     function populateDateOptions() {
       const records = getActiveRecords();
       const select = document.getElementById('dateSelect');
-      const dates = Array.from(new Set(records.map(r => r.date))).sort();
+      const dates = Array.from(new Set(records.map(r => r.date)))
+        .sort((a, b) => normalizeDate(a).localeCompare(normalizeDate(b)));
 
       select.innerHTML = '<option value="all">所有日期</option>' +
         dates.map(d => `<option value="${d}">${d}</option>`).join('');
