@@ -344,14 +344,14 @@
 
       // 搜尋個家大樓
       gejiaData.forEach(r => {
-        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
+        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.stall && r.stall.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
           results.push({
             park: '個家大樓',
             tagClass: 'tag-gejia',
             url: `./gejia/`,
             date: r.date,
             title: r.vendor,
-            sub: `${r.sheetLabel || ''} 攤位 ${r.stall} | ${r.notes || ''}`
+            sub: `${r.sheetLabel || ''} ${r.stall} | ${r.notes || ''}`
           });
         }
       });
