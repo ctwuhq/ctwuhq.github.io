@@ -462,6 +462,24 @@
           }
         });
 
+        // 處理 URL 參數（例如 ?date=2026/09/01 或 ?q=油飯）
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateParam = urlParams.get('date');
+        const qParam = urlParams.get('q');
+
+        if (dateParam) {
+          const normP = normalizeDate(dateParam.replace(/-/g, '/'));
+          const exactMatch = dateSet.find(d => normalizeDate(d) === normP);
+          if (exactMatch) {
+            dateSelect.value = exactMatch;
+            updateDatePicker(exactMatch);
+          }
+        }
+
+        if (qParam) {
+          document.getElementById('search-input').value = qParam;
+        }
+
         renderCurrentDate();
       } catch (err) {
         console.error(err);

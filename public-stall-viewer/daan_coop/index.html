@@ -242,7 +242,7 @@
   <footer>資料由爬蟲自動更新，僅供參考</footer>
 
   <script>
-    let daanData = [], coopData = [], aiguoData = [], gejiaData = [];
+    let allUnifiedRecords = [];
     let searchTimer = null;
 
     function escHtml(str) {
@@ -253,135 +253,255 @@
         .replace(/"/g, '&quot;');
     }
 
+    function getTodayNorm() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function normalizeDate(str) {
+      if (!str) return '';
+      const s = String(str).trim();
+      const m = s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (m) {
+        return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+      }
+      return s;
+    }
+
+    function getWeekdayName(dateNormStr) {
+      if (!dateNormStr || !dateNormStr.match(/^\d{4}-\d{2}-\d{2}$/)) return '';
+      const d = new Date(dateNormStr + 'T00:00:00');
+      const dayNames = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const fullNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const idx = d.getDay();
+      return `${dayNames[idx]} ${fullNames[idx]}`;
+    }
+
     async function loadAllData() {
       try {
+        const ts = Date.now();
         const [r1, r2, r3, r4] = await Promise.all([
-          fetch('daan/data.json').then(r => r.json()).catch(() => ({})),
-          fetch('coop/data.json').then(r => r.json()).catch(() => ({})),
-          fetch('aiguo/data.json').then(r => r.json()).catch(() => ({})),
-          fetch('gejia/data.json').then(r => r.json()).catch(() => ({}))
+          fetch(`daan/data.json?_=${ts}`).then(r => r.json()).catch(() => ({})),
+          fetch(`coop/data.json?_=${ts}`).then(r => r.json()).catch(() => ({})),
+          fetch(`aiguo/data.json?_=${ts}`).then(r => r.json()).catch(() => ({})),
+          fetch(`gejia/data.json?_=${ts}`).then(r => r.json()).catch(() => ({}))
         ]);
 
-        daanData = r1.records || [];
-        
-        coopData = [];
+        const records = [];
+
+        // 1. 大安園區
+        (r1.records || []).forEach(r => {
+          const norm = normalizeDate(r.date);
+          records.push({
+            park: '大安園區',
+            tagClass: 'tag-daan',
+            parkPath: './daan/',
+            date: r.date || '',
+            normDate: norm,
+            vendor: r.name || '',
+            stall: r.stall_id || '',
+            details: r.items || '',
+            sheetLabel: '',
+            day: getWeekdayName(norm)
+          });
+        });
+
+        // 2. 消費合作社
         (r2.sheets || []).forEach(s => {
-          (s.records || []).forEach(rec => coopData.push({ ...rec, sheetLabel: s.label || s.name }));
+          (s.records || []).forEach(r => {
+            const norm = normalizeDate(r.date);
+            records.push({
+              park: '消費合作社',
+              tagClass: 'tag-coop',
+              parkPath: './coop/',
+              date: r.date || '',
+              normDate: norm,
+              vendor: r.vendor || '',
+              stall: r.stall || '',
+              details: r.notes || '',
+              sheetLabel: s.label || s.name || '',
+              day: getWeekdayName(norm)
+            });
+          });
         });
 
-        aiguoData = [];
+        // 3. 愛國園區
         (r3.sheets || []).forEach(s => {
-          (s.records || []).forEach(rec => aiguoData.push({ ...rec, sheetLabel: s.label || s.name }));
+          (s.records || []).forEach(r => {
+            const norm = normalizeDate(r.date);
+            records.push({
+              park: '愛國園區',
+              tagClass: 'tag-aiguo',
+              parkPath: './aiguo/',
+              date: r.date || '',
+              normDate: norm,
+              vendor: r.vendor || '',
+              stall: r.stall || '',
+              details: r.notes || '',
+              sheetLabel: s.label || s.name || '',
+              day: r.day ? `${r.day} ${getWeekdayName(norm)}` : getWeekdayName(norm)
+            });
+          });
         });
 
-        gejiaData = [];
+        // 4. 個家大樓
         (r4.sheets || []).forEach(s => {
-          (s.records || []).forEach(rec => gejiaData.push({ ...rec, sheetLabel: s.label || s.name }));
+          (s.records || []).forEach(r => {
+            const norm = normalizeDate(r.date);
+            records.push({
+              park: '個家大樓',
+              tagClass: 'tag-gejia',
+              parkPath: './gejia/',
+              date: r.date || '',
+              normDate: norm,
+              vendor: r.vendor || '',
+              stall: r.stall || '',
+              details: r.notes || '',
+              sheetLabel: s.label || s.name || '',
+              day: getWeekdayName(norm)
+            });
+          });
         });
+
+        // 預先計算 searchBlob 支援多欄位比對
+        records.forEach(r => {
+          const md = r.normDate ? r.normDate.slice(5) : '';
+          const mdSlash = md.replace('-', '/');
+          const mdShort = md.replace(/^0/, '').replace(/-0?/, '/');
+          r.searchBlob = [
+            r.park,
+            r.vendor,
+            r.stall,
+            r.details,
+            r.sheetLabel || '',
+            r.date,
+            r.normDate,
+            md,
+            mdSlash,
+            mdShort,
+            r.day || ''
+          ].join(' ').toLowerCase();
+        });
+
+        allUnifiedRecords = records;
       } catch (e) {
         console.error('Cross-park data load error', e);
       }
     }
 
-    document.getElementById('globalSearchInput').addEventListener('input', (e) => {
-      const kw = e.target.value.trim().toLowerCase();
+    function doSearch(kw) {
       const box = document.getElementById('searchResults');
-
       if (!kw) {
         box.style.display = 'none';
         box.innerHTML = '';
         return;
       }
 
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        trackEvent('search_vendor', { search_term: kw, park: 'global_index' });
-      }, 500);
+      const todayNorm = getTodayNorm();
+      const currentMonthStart = todayNorm.slice(0, 7) + '-01';
+      const tokens = kw.split(/\s+/).filter(Boolean);
 
-      const results = [];
-
-      // 搜尋大安
-      daanData.forEach(r => {
-        if ((r.name && r.name.toLowerCase().includes(kw)) || (r.items && r.items.toLowerCase().includes(kw))) {
-          results.push({
-            park: '大安園區',
-            tagClass: 'tag-daan',
-            url: `./daan/`,
-            date: r.date,
-            title: r.name,
-            sub: `攤位 ${r.stall_id} | ${r.items || ''}`
-          });
-        }
+      // 比對關鍵字 (所有 tokens 皆需符合)
+      const matches = allUnifiedRecords.filter(r => {
+        return tokens.every(token => r.searchBlob.includes(token));
       });
 
-      // 搜尋合作社
-      coopData.forEach(r => {
-        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
-          results.push({
-            park: '消費合作社',
-            tagClass: 'tag-coop',
-            url: `./coop/`,
-            date: r.date,
-            title: r.vendor,
-            sub: `攤位 ${r.stall} | ${r.notes || ''}`
-          });
-        }
-      });
-
-      // 搜尋愛國
-      aiguoData.forEach(r => {
-        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
-          results.push({
-            park: '愛國園區',
-            tagClass: 'tag-aiguo',
-            url: `./aiguo/`,
-            date: r.date,
-            title: r.vendor,
-            sub: `${r.sheetLabel || ''} 攤位 ${r.stall} | ${r.notes || ''}`
-          });
-        }
-      });
-
-      // 搜尋個家大樓
-      gejiaData.forEach(r => {
-        if ((r.vendor && r.vendor.toLowerCase().includes(kw)) || (r.stall && r.stall.toLowerCase().includes(kw)) || (r.notes && r.notes.toLowerCase().includes(kw))) {
-          results.push({
-            park: '個家大樓',
-            tagClass: 'tag-gejia',
-            url: `./gejia/`,
-            date: r.date,
-            title: r.vendor,
-            sub: `${r.sheetLabel || ''} ${r.stall} | ${r.notes || ''}`
-          });
-        }
-      });
-
-      if (results.length === 0) {
+      if (matches.length === 0) {
         box.style.display = 'block';
-        box.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:1rem;">全站無符合「${escHtml(kw)}」的擺攤紀錄</div>`;
+        box.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:1.25rem;">全站無符合「<strong>${escHtml(kw)}</strong>」的擺攤紀錄</div>`;
         return;
       }
 
-      box.style.display = 'flex';
-      let html = `<div style="font-size:0.9rem; font-weight:700; color:#4f46e5; margin-bottom:0.25rem;">全站共找到 ${results.length} 筆符合結果：</div>`;
+      // 智能排序：
+      // 優先度 1: 今日或未來的排班 (normDate >= todayNorm)，依日期由近到遠 (asc)
+      // 優先度 2: 當月過去的排班 (currentMonthStart <= normDate < todayNorm)，依日期由近到遠 (desc)
+      // 優先度 3: 更久以前的歷史排班 (normDate < currentMonthStart)，依日期由近到遠 (desc)
+      matches.sort((a, b) => {
+        const aNorm = a.normDate || '';
+        const bNorm = b.normDate || '';
+        
+        const getPriority = (d) => {
+          if (!d) return 4;
+          if (d >= todayNorm) return 1;
+          if (d >= currentMonthStart) return 2;
+          return 3;
+        };
 
-      results.slice(0, 12).forEach(item => {
+        const pA = getPriority(aNorm);
+        const pB = getPriority(bNorm);
+
+        if (pA !== pB) return pA - pB;
+
+        if (pA === 1) {
+          return aNorm.localeCompare(bNorm);
+        } else {
+          return bNorm.localeCompare(aNorm);
+        }
+      });
+
+      box.style.display = 'flex';
+      let html = `<div style="font-size:0.9rem; font-weight:700; color:#4f46e5; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+        <span>🔍 全站共找到 ${matches.length} 筆符合結果：</span>
+        <span style="font-size:0.8rem; color:#64748b; font-weight:400;">(點擊直接跳轉該園區)</span>
+      </div>`;
+
+      const displayLimit = 20;
+      matches.slice(0, displayLimit).forEach(item => {
+        const isToday = item.normDate === todayNorm;
+        const isPast = item.normDate < todayNorm;
+
+        let dateTag = '';
+        if (isToday) {
+          dateTag = '<span style="color:#e11d48; font-weight:700; margin-left:0.3rem;">⭐️ 今日</span>';
+        } else if (isPast) {
+          dateTag = '<span style="color:#94a3b8; font-size:0.8rem; margin-left:0.3rem;">(歷史)</span>';
+        }
+
+        let subInfo = [];
+        if (item.sheetLabel) subInfo.push(item.sheetLabel);
+        if (item.stall) subInfo.push(item.stall.startsWith('攤位') ? item.stall : `攤位 ${item.stall}`);
+        if (item.details) subInfo.push(item.details);
+        const subStr = subInfo.join(' ｜ ');
+
+        const linkUrl = `${item.parkPath}?date=${encodeURIComponent(item.date)}&q=${encodeURIComponent(kw)}`;
+
         html += `
-          <a class="result-item" href="${item.url}">
-            <div>
-              <div style="font-weight:700; font-size:0.95rem;">${escHtml(item.title)} <span style="font-size:0.85rem; color:#64748b; font-weight:400;">(${escHtml(item.date || '')})</span></div>
-              <div style="font-size:0.85rem; color:#64748b; margin-top:0.2rem;">${escHtml(item.sub)}</div>
+          <a class="result-item" href="${linkUrl}">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:0.95rem; display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem;">
+                <span>${escHtml(item.vendor)}</span>
+                <span style="font-size:0.85rem; color:#64748b; font-weight:400;">📅 ${escHtml(item.date || '')} ${escHtml(item.day ? item.day.split(' ')[0] : '')}</span>
+                ${dateTag}
+              </div>
+              <div style="font-size:0.85rem; color:#64748b; margin-top:0.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                ${escHtml(subStr)}
+              </div>
             </div>
             <span class="result-park-tag ${item.tagClass}">${escHtml(item.park)} →</span>
           </a>
         `;
       });
 
-      if (results.length > 12) {
-        html += `<div style="text-align:center; font-size:0.85rem; color:#94a3b8; padding:0.5rem;">還有 ${results.length - 12} 筆結果，請進入各園區查看更多...</div>`;
+      if (matches.length > displayLimit) {
+        html += `<div style="text-align:center; font-size:0.85rem; color:#64748b; padding:0.5rem;">還有 ${matches.length - displayLimit} 筆結果，請進入各園區查看更多...</div>`;
       }
 
       box.innerHTML = html;
+    }
+
+    document.getElementById('globalSearchInput').addEventListener('input', (e) => {
+      const kw = e.target.value.trim().toLowerCase();
+      doSearch(kw);
+
+      if (kw) {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          trackEvent('search_vendor', { search_term: kw, park: 'global_index' });
+        }, 500);
+      }
     });
 
     loadAllData();

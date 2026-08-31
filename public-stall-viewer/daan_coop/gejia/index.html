@@ -436,6 +436,26 @@
         renderSheetTabs();
         setupEventListeners();
         switchSheet(0);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateParam = urlParams.get('date');
+        const qParam = urlParams.get('q');
+
+        if (dateParam) {
+          const select = document.getElementById('dateSelect');
+          const options = Array.from(select.options).map(o => o.value);
+          const normP = normalizeDate(dateParam);
+          const match = options.find(o => normalizeDate(o) === normP);
+          if (match) {
+            select.value = match;
+          }
+        }
+
+        if (qParam) {
+          document.getElementById('searchInput').value = qParam;
+        }
+
+        filterAndRender();
       } catch (err) {
         document.getElementById('metaBar').textContent = '⚠️ 無法載入資料';
         document.getElementById('contentBox').innerHTML = `
